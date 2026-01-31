@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cendrawasih | Belajar Gratis Kelas Dunia</title>
+    
+    <!-- Fonts: Plus Jakarta Sans (Modern, Clean, populer di startup EdTech Indonesia) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Icons: FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Tailwind Config for Custom Colors -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#10b981', // Emerald green (Growth)
+                            600: '#059669',
+                            700: '#047857',
+                            800: '#065f46', // Deep green
+                            900: '#064e3b',
+                        },
+                        accent: {
+                            400: '#fbbf24', // Gold (Cendrawasih feather)
+                            500: '#f59e0b',
+                        }
+                    },
+                    backgroundImage: {
+                        'batik-pattern': "url('data:image/svg+xml,%3Csvg width=\\'60\\' height=\\'60\\' viewBox=\\'0 0 60 60\\' xmlns=\\'http://www.w3.org/2000/svg\\'%3E%3Cg fill=\\'none\\' fill-rule=\\'evenodd\\'%3E%3Cg fill=\\'%23ffffff\\' fill-opacity=\\'0.1\\'%3E%3Cpath d=\\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')",
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom Scrollbar for a polished feel */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+        
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Animation for routing */
+        .fade-in {
+            animation: fadeIn 0.4s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased selection:bg-brand-200 selection:text-brand-900">
+
+    <!-- Navbar -->
+    <nav class="sticky top-0 z-50 bg-white border-b border-slate-200 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <!-- Logo & Left Nav -->
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 flex items-center cursor-pointer" onclick="navigateTo('home')">
+                        <i class="fa-solid fa-dove text-brand-600 text-2xl mr-2"></i>
+                        <span class="font-bold text-2xl tracking-tight text-brand-800">Cendrawasih</span>
+                    </div>
+                    <div class="hidden sm:ml-8 sm:flex sm:space-x-8">
+                        <button onclick="navigateTo('courses')" class="border-transparent text-slate-500 hover:border-brand-500 hover:text-brand-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            Mata Pelajaran
+                        </button>
+                        <button class="border-transparent text-slate-500 hover:border-brand-500 hover:text-brand-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            Tentang Kami
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Search & Profile -->
+                <div class="flex items-center space-x-4">
+                    <div class="hidden md:block relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3">
+                            <i class="fa-solid fa-magnifying-glass text-slate-400"></i>
+                        </span>
+                        <input type="text" placeholder="Cari materi (mis: Aljabar)" class="block w-full pl-10 pr-3 py-2 border border-slate-300 rounded-full leading-5 bg-slate-50 placeholder-slate-400 focus:outline-none focus:bg-white focus:ring-1 focus:ring-brand-500 focus:border-brand-500 sm:text-sm transition duration-150 ease-in-out">
+                    </div>
+                    
+                    <button class="text-slate-500 hover:text-brand-600 font-medium text-sm">Masuk</button>
+                    <button class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-full text-sm font-bold shadow-md transition-colors">
+                        Daftar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Container -->
+    <main id="app" class="min-h-screen">
+        <!-- Content will be injected here via JavaScript -->
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-white pt-12 pb-8 mt-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div class="col-span-1 md:col-span-1">
+                    <div class="flex items-center mb-4">
+                        <i class="fa-solid fa-dove text-brand-500 text-xl mr-2"></i>
+                        <span class="font-bold text-xl">Cendrawasih</span>
+                    </div>
+                    <p class="text-slate-400 text-sm leading-relaxed">
+                        Misi kami adalah memberikan pendidikan kelas dunia secara gratis untuk siapa saja, di mana saja di Indonesia.
+                    </p>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4">Mata Pelajaran</h3>
+                    <ul class="space-y-2 text-slate-300 text-sm">
+                        <li><a href="#" class="hover:text-brand-400">Matematika SMP</a></li>
+                        <li><a href="#" class="hover:text-brand-400">IPA Terpadu</a></li>
+                        <li><a href="#" class="hover:text-brand-400">Bahasa Indonesia</a></li>
+                        <li><a href="#" class="hover:text-brand-400">Coding & Komputer</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4">Komunitas</h3>
+                    <ul class="space-y-2 text-slate-300 text-sm">
+                        <li><a href="#" class="hover:text-brand-400">Untuk Guru</a></li>
+                        <li><a href="#" class="hover:text-brand-400">Untuk Orang Tua</a></li>
+                        <li><a href="#" class="hover:text-brand-400">Donasi</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4">Hubungi Kami</h3>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-slate-400 hover:text-white"><i class="fa-brands fa-instagram text-xl"></i></a>
+                        <a href="#" class="text-slate-400 hover:text-white"><i class="fa-brands fa-twitter text-xl"></i></a>
+                        <a href="#" class="text-slate-400 hover:text-white"><i class="fa-brands fa-youtube text-xl"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t border-slate-800 mt-12 pt-8 text-center text-slate-500 text-sm">
+                &copy; 2024 Cendrawasih Academy. Dibuat dengan ❤️ untuk Indonesia.
+            </div>
+        </div>
+    </footer>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // --- DATA MOCKUP (Database Simulasi) ---
+        const subjects = [
+            {
+                id: 'math',
+                title: 'Matematika',
+                grade: 'Kelas 7-9 SMP',
+                icon: 'fa-calculator',
+                color: 'bg-blue-100 text-blue-600',
+                description: 'Aljabar, Geometri, Statistika, dan Bilangan.',
+                topics: [
+                    { title: 'Bilangan Bulat', lessons: 5 },
+                    { title: 'Aljabar Dasar', lessons: 8 },
+                    { title: 'Persamaan Linear', lessons: 4 }
+                ]
+            },
+            {
+                id: 'science',
+                title: 'IPA Terpadu',
+                grade: 'Kelas 7-9 SMP',
+                icon: 'fa-flask',
+                color: 'bg-green-100 text-green-600',
+                description: 'Biologi, Fisika dasar, dan Kimia dalam kehidupan sehari-hari.',
+                topics: [
+                    { title: 'Ekosistem & Lingkungan', lessons: 6 },
+                    { title: 'Gerak dan Gaya', lessons: 7 },
+                    { title: 'Sistem Pencernaan', lessons: 5 }
+                ]
+            },
+            {
+                id: 'bahasa',
+                title: 'Bahasa Indonesia',
+                grade: 'Kelas 7-9 SMP',
+                icon: 'fa-book-open',
+                color: 'bg-yellow-100 text-yellow-600',
+                description: 'Teks deskripsi, puisi, pantun, dan tata bahasa.',
+                topics: [
+                    { title: 'Teks Deskripsi', lessons: 3 },
+                    { title: 'Puisi Rakyat', lessons: 4 },
+                    { title: 'Surat Resmi & Pribadi', lessons: 2 }
+                ]
+            },
+            {
+                id: 'coding',
+                title: 'Informatika',
+                grade: 'Pemula',
+                icon: 'fa-laptop-code',
+                color: 'bg-purple-100 text-purple-600',
+                description: 'Berpikir komputasional, algoritma dasar, dan HTML.',
+                topics: [
+                    { title: 'Apa itu Internet?', lessons: 2 },
+                    { title: 'Logika Pemrograman', lessons: 10 },
+                    { title: 'Membuat Web Pertamamu', lessons: 5 }
+                ]
+            }
+        ];
+
+        // --- COMPONENTS & VIEWS ---
+
+        const app = document.getElementById('app');
+
+        function renderHome() {
+            let subjectCards = subjects.map(sub => `
+                <div onclick="navigateTo('lesson', '${sub.id}')" class="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm card-hover cursor-pointer group">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="${sub.color} p-3 rounded-xl">
+                            <i class="fa-solid ${sub.icon} text-xl"></i>
+                        </div>
+                        <span class="text-xs font-semibold uppercase tracking-wide text-slate-400 bg-slate-50 px-2 py-1 rounded-md">${sub.grade}</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-800 mb-2 group-hover:text-brand-600 transition-colors">${sub.title}</h3>
+                    <p class="text-slate-500 text-sm mb-4 line-clamp-2">${sub.description}</p>
+                    <div class="border-t border-slate-100 pt-4 mt-auto">
+                        <div class="flex items-center text-sm text-slate-500">
+                            <i class="fa-solid fa-layer-group mr-2 text-slate-400"></i>
+                            ${sub.topics.length} Topik Utama
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            app.innerHTML = `
+                <div class="fade-in">
+                    <!-- Hero Section -->
+                    <div class="bg-brand-900 bg-batik-pattern relative overflow-hidden">
+                        <div class="absolute inset-0 bg-gradient-to-r from-brand-900 via-brand-800 to-transparent opacity-95"></div>
+                        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28">
+                            <div class="md:w-2/3">
+                                <span class="inline-block py-1 px-3 rounded-full bg-brand-800 border border-brand-600 text-brand-100 text-xs font-semibold tracking-wider mb-4 uppercase">
+                                    Platform Belajar #1 di Indonesia
+                                </span>
+                                <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white tracking-tight leading-tight mb-6">
+                                    Miliki Masa Depanmu <br>
+                                    <span class="text-accent-400">Mulai Dari Sini.</span>
+                                </h1>
+                                <p class="text-lg md:text-xl text-brand-100 mb-8 max-w-2xl leading-relaxed">
+                                    Akses ribuan video pembelajaran, latihan soal interaktif, dan materi kurikulum nasional SMP secara gratis. Belajar dengan caramu, di mana saja.
+                                </p>
+                                <div class="flex flex-col sm:flex-row gap-4">
+                                    <button onclick="navigateTo('courses')" class="bg-accent-500 hover:bg-accent-400 text-white font-bold py-3 px-8 rounded-full shadow-lg transform transition hover:-translate-y-1 text-center">
+                                        Mulai Belajar Sekarang
+                                    </button>
+                                    <button class="bg-brand-800 bg-opacity-50 hover:bg-opacity-70 text-white font-semibold py-3 px-8 rounded-full border border-brand-500 backdrop-blur-sm transition text-center">
+                                        Untuk Guru & Sekolah
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Decorative Blob -->
+                        <div class="absolute -bottom-24 -right-24 w-96 h-96 bg-brand-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+                    </div>
+
+                    <!-- Subject Section -->
+                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+                        <div class="text-center mb-12">
+                            <h2 class="text-3xl font-bold text-slate-800 mb-4">Jelajahi Pelajaran</h2>
+                            <p class="text-slate-500 max-w-2xl mx-auto">Kami menyediakan kurikulum lengkap untuk jenjang SMP yang disesuaikan dengan standar pendidikan Indonesia.</p>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                            ${subjectCards}
+                        </div>
+                    </div>
+
+                    <!-- CTA Section -->
+                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+                        <div class="bg-indigo-600 rounded-3xl p-8 md:p-12 flex flex-col md:flex-row items-center justify-between shadow-xl relative overflow-hidden">
+                             <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+                             <div class="relative z-10 md:w-2/3 mb-6 md:mb-0">
+                                <h2 class="text-2xl md:text-3xl font-bold text-white mb-2">Siap untuk Ujian Nasional?</h2>
+                                <p class="text-indigo-100">Latih kesiapanmu dengan bank soal lengkap dan pembahasan mendalam.</p>
+                             </div>
+                             <div class="relative z-10">
+                                <button class="bg-white text-indigo-600 font-bold py-3 px-6 rounded-full shadow-md hover:bg-indigo-50 transition">
+                                    Coba Latihan Soal
+                                </button>
+                             </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderLesson(subjectId) {
+            const subject = subjects.find(s => s.id === subjectId) || subjects[0];
+            
+            // Mock Content for Lesson View
+            app.innerHTML = `
+                <div class="fade-in bg-white min-h-screen">
+                    <div class="flex flex-col lg:flex-row max-w-7xl mx-auto">
+                        
+                        <!-- Sidebar / Curriculum -->
+                        <div class="w-full lg:w-1/4 border-r border-slate-200 bg-slate-50 lg:min-h-screen">
+                            <div class="p-6 border-b border-slate-200 bg-white sticky top-16 z-10">
+                                <button onclick="navigateTo('home')" class="text-sm text-slate-500 hover:text-brand-600 mb-2 flex items-center">
+                                    <i class="fa-solid fa-arrow-left mr-2"></i> Kembali
+                                </button>
+                                <h2 class="text-xl font-bold text-slate-800">${subject.title}</h2>
+                                <div class="w-full bg-slate-200 rounded-full h-2 mt-3">
+                                    <div class="bg-brand-500 h-2 rounded-full" style="width: 35%"></div>
+                                </div>
+                                <p class="text-xs text-slate-500 mt-1">35% Selesai</p>
+                            </div>
+                            <div class="p-4 space-y-4 overflow-y-auto" style="height: calc(100vh - 200px);">
+                                ${subject.topics.map((topic, index) => `
+                                    <div>
+                                        <h3 class="font-bold text-slate-700 text-sm mb-2 uppercase tracking-wide px-2">${topic.title}</h3>
+                                        <ul class="space-y-1">
+                                            <li>
+                                                <button onclick="changeVideo('Pengantar ${topic.title}')" class="w-full text-left px-3 py-2 rounded-lg text-sm ${index === 0 ? 'bg-brand-50 text-brand-700 font-medium' : 'text-slate-600 hover:bg-slate-200'} flex items-center">
+                                                    <i class="fa-regular fa-circle-play mr-3 ${index === 0 ? 'text-brand-500' : 'text-slate-400'}"></i>
+                                                    Konsep Dasar
+                                                </button>
+                                            </li>
+                                            <li>
+                                                <button class="w-full text-left px-3 py-2 rounded-lg text-sm text-slate-600 hover:bg-slate-200 flex items-center">
+                                                    <i class="fa-regular fa-circle-play mr-3 text-slate-400"></i>
+                                                    Contoh Soal
+                                                </button>
+                                            </li>
+                                            <li>
+                                                <button class="w-full text-left px-3 py-2 rounded-lg text-sm text-slate-600 hover:bg-slate-200 flex items-center">
+                                                    <i class="fa-solid fa-star mr-3 text-yellow-500"></i>
+                                                    Latihan Mandiri
+                                                </button>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        <!-- Main Content Area -->
+                        <div class="w-full lg:w-3/4 p-6 lg:p-10">
+                            <div class="max-w-4xl mx-auto">
+                                <div class="aspect-w-16 aspect-h-9 bg-slate-900 rounded-2xl shadow-lg overflow-hidden mb-8 relative group">
+                                    <!-- Fake Video Player UI -->
+                                    <div class="absolute inset-0 flex items-center justify-center">
+                                        <div class="text-center">
+                                             <div class="w-20 h-20 bg-brand-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-brand-500 hover:scale-110 transition shadow-xl z-20 mx-auto mb-4">
+                                                <i class="fa-solid fa-play text-white text-3xl ml-2"></i>
+                                            </div>
+                                            <p class="text-white font-medium">Klik untuk Memulai Video</p>
+                                        </div>
+                                    </div>
+                                    <!-- Progress Bar Simulated -->
+                                    <div class="absolute bottom-0 left-0 right-0 h-1 bg-slate-700">
+                                        <div class="h-full bg-brand-500 w-0 group-hover:w-full transition-all duration-[5000ms]"></div>
+                                    </div>
+                                </div>
+
+                                <div class="flex justify-between items-start mb-8">
+                                    <div>
+                                        <h1 id="lesson-title" class="text-3xl font-bold text-slate-900 mb-2">Konsep Dasar: ${subject.topics[0].title}</h1>
+                                        <p class="text-slate-500 text-lg">Bagian dari bab ${subject.topics[0].title}</p>
+                                    </div>
+                                    <button class="flex items-center space-x-2 text-brand-600 font-semibold border border-brand-200 px-4 py-2 rounded-lg hover:bg-brand-50">
+                                        <i class="fa-solid fa-share-nodes"></i>
+                                        <span>Bagikan</span>
+                                    </button>
+                                </div>
+
+                                <!-- Tabs -->
+                                <div class="border-b border-slate-200 mb-8">
+                                    <nav class="-mb-px flex space-x-8">
+                                        <a href="#" class="border-brand-500 text-brand-600 whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm">
+                                            Ikhtisar
+                                        </a>
+                                        <a href="#" class="border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm">
+                                            Transkrip
+                                        </a>
+                                        <a href="#" class="border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm">
+                                            Diskusi (24)
+                                        </a>
+                                    </nav>
+                                </div>
+
+                                <div class="prose prose-slate max-w-none text-slate-600">
+                                    <p>Dalam video ini, kita akan mempelajari dasar-dasar yang sangat penting untuk memahami topik selanjutnya. Pastikan Anda mencatat poin-poin utama berikut:</p>
+                                    <ul class="list-disc pl-5 space-y-2 my-4">
+                                        <li>Definisi dan pengertian dasar.</li>
+                                        <li>Rumus-rumus penting yang akan sering digunakan.</li>
+                                        <li>Contoh penerapan dalam kehidupan sehari-hari di Indonesia.</li>
+                                    </ul>
+                                    <p>Setelah menonton video ini, jangan lupa untuk mengerjakan kuis latihan untuk menguji pemahamanmu. Semangat belajar!</p>
+                                </div>
+                                
+                                <!-- Next Lesson CTA -->
+                                <div class="mt-12 p-6 bg-brand-50 rounded-xl border border-brand-100 flex items-center justify-between">
+                                    <div>
+                                        <span class="text-xs font-bold text-brand-600 uppercase tracking-wide">Selanjutnya</span>
+                                        <h3 class="text-lg font-bold text-slate-800">Latihan Soal: Pemahaman Dasar</h3>
+                                    </div>
+                                    <button class="bg-brand-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-brand-700 transition shadow-md">
+                                        Mulai Latihan <i class="fa-solid fa-arrow-right ml-2"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function changeVideo(title) {
+            const titleEl = document.getElementById('lesson-title');
+            if(titleEl) {
+                titleEl.textContent = title;
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        // --- ROUTER ---
+        function navigateTo(page, param = null) {
+            window.scrollTo(0, 0);
+            if (page === 'home') {
+                renderHome();
+            } else if (page === 'courses') {
+                // For simplicity, courses view is same as part of home but scrolled down, 
+                // but here let's just re-render home for now.
+                renderHome();
+                setTimeout(() => {
+                    document.querySelector('.grid').scrollIntoView({behavior: 'smooth'});
+                }, 100);
+            } else if (page === 'lesson') {
+                renderLesson(param);
+            }
+        }
+
+        // Init
+        document.addEventListener('DOMContentLoaded', () => {
+            renderHome();
+        });
+
+    </script>
+</body>
+</html>
