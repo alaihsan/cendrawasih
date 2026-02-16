@@ -1,10 +1,13 @@
 from flask import render_template
 from flask_login import current_user
 from app.blueprints.main import bp
+from app.services.course_service import CourseService
 
 @bp.route('/')
 def index():
-    return render_template('index.html')
+    # Get featured courses (first 3 courses)
+    featured_courses = CourseService.get_all_courses()[:3]
+    return render_template('index.html', featured_courses=featured_courses)
 
 @bp.route('/dashboard')
 def dashboard():

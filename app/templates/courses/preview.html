@@ -1,0 +1,315 @@
+{% extends "base.html" %}
+
+{% block title %}{{ course.title }} - Preview - Cendrawasih{% endblock %}
+
+{% block content %}
+<div class="bg-gradient-to-r from-emerald-600 to-blue-600 py-16 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto">
+        <div class="flex items-center justify-between">
+            <div class="text-white">
+                <h1 class="text-4xl font-bold mb-3">{{ course.title }}</h1>
+                <p class="text-xl text-emerald-50 mb-4 max-w-2xl">{{ course.description }}</p>
+                <div class="flex items-center gap-6 text-sm text-emerald-50">
+                    <span><i class="fas fa-star text-amber-300 mr-1"></i> 4.8 (2.5K reviews)</span>
+                    <span><i class="fas fa-users mr-1"></i> 50K+ students</span>
+                    <span><i class="fas fa-clock mr-1"></i> {{ total_lessons }} lessons</span>
+                </div>
+            </div>
+            <div class="hidden lg:block">
+                <i class="fas {{ course.icon_class or 'fa-book' }} text-white text-6xl opacity-30"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <div class="grid lg:grid-cols-3 gap-12">
+        <!-- Main Content -->
+        <div class="lg:col-span-2">
+            <!-- Video Preview -->
+            {% if first_lesson and video_sources %}
+                <div class="mb-12" data-aos="fade-up">
+                    <h2 class="text-2xl font-bold text-slate-900 mb-6">
+                        <i class="fas fa-play-circle text-emerald-600 mr-2"></i> Preview Video
+                    </h2>
+                    
+                    <!-- Quality Selector -->
+                    {% if video_sources %}
+                        <div class="absolute top-4 right-4 z-20 flex gap-2 flex-wrap justify-end">
+                            {% for source in video_sources %}
+                                <button class="quality-selector px-3 py-1 bg-gray-800 hover:bg-emerald-600 text-white text-xs font-semibold rounded transition" 
+                                        data-quality="{{ source.quality }}" 
+                                        data-src="{{ source.src }}" 
+                                        data-type="{{ source.type }}"
+                                        {% if loop.first %}data-default="true"{% endif %}>
+                                    {{ source.quality }}
+                                </button>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    
+                    <div id="videoContainer" class="relative bg-gray-900 rounded-lg overflow-hidden h-96 flex items-center justify-center group">
+                        <video id="previewVideo" playsinline controls class="w-full h-full">
+                            {% if video_sources %}
+                                {% set first_source = video_sources[0] %}
+                                <source src="{{ first_source.src }}" type="{{ first_source.type }}">
+                            {% else %}
+                                <source src="{{ first_lesson.content_url }}" type="video/mp4">
+                            {% endif %}
+                            Browser Anda tidak mendukung pemutaran video
+                        </video>
+                    </div>
+                    
+                    <div class="mt-4 px-4 py-3 bg-blue-50 border-l-4 border-blue-600 rounded">
+                        <p class="text-blue-900 text-sm">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            Ini adalah preview gratis dari kursus. <strong>Daftar sekarang</strong> untuk akses penuh ke semua {{ total_lessons }} lessons!
+                        </p>
+                    </div>
+                </div>
+            {% endif %}
+            
+            <!-- Course Outline -->
+            <div class="mb-12" data-aos="fade-up">
+                <h2 class="text-2xl font-bold text-slate-900 mb-6">
+                    <i class="fas fa-list text-emerald-600 mr-2"></i> Program Pembelajaran
+                </h2>
+                
+                <div class="space-y-4">
+                    {% for topic in course.topics %}
+                        <details class="bg-white border border-slate-200 rounded-lg overflow-hidden hover:shadow-md transition">
+                            <summary class="px-6 py-4 cursor-pointer font-semibold text-slate-900 flex items-center justify-between hover:bg-slate-50">
+                                <div class="flex items-center gap-3">
+                                    <i class="fas fa-folder-open text-emerald-600"></i>
+                                    <span>{{ topic.title }}</span>
+                                    <span class="ml-2 text-xs font-normal text-slate-600 bg-slate-100 px-2 py-1 rounded">{{ topic.lessons|length }} lessons</span>
+                                </div>
+                                <i class="fas fa-chevron-down text-slate-400"></i>
+                            </summary>
+                            
+                            <div class="bg-slate-50 px-6 py-4 border-t border-slate-200 space-y-3">
+                                {% for lesson in topic.lessons %}
+                                    <div class="flex items-center gap-3 p-3 rounded hover:bg-white transition">
+                                        <i class="fas {% if lesson.content_type == 'video' %}fa-play-circle text-emerald-600{% elif lesson.content_type == 'text' %}fa-file-alt text-blue-600{% elif lesson.content_type == 'pdf' %}fa-file-pdf text-red-600{% else %}fa-link text-purple-600{% endif %}"></i>
+                                        <span class="flex-1 text-slate-700 text-sm">{{ lesson.title }}</span>
+                                        {% if loop.first %}
+                                            <span class="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded">FREE</span>
+                                        {% else %}
+                                            <span class="text-xs bg-slate-200 text-slate-600 px-2 py-1 rounded">Enroll</span>
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </details>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- Learning Objectives -->
+            <div class="mb-12" data-aos="fade-up">
+                <h2 class="text-2xl font-bold text-slate-900 mb-6">
+                    <i class="fas fa-bullseye text-emerald-600 mr-2"></i> Apa yang Akan Anda Pelajari
+                </h2>
+                
+                <ul class="grid md:grid-cols-2 gap-4">
+                    {% for objective in [
+                        'Memahami konsep dasar dengan sempurna',
+                        'Menguasai teknik praktis industri',
+                        'Mengerjakan proyek real-world',
+                        'Mendapatkan sertifikat profesional',
+                        'Terhubung dengan komunitas global',
+                        'Career advancement opportunities'
+                    ] %}
+                        <li class="flex items-center gap-3">
+                            <div class="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                                <i class="fas fa-check text-emerald-600 text-sm"></i>
+                            </div>
+                            <span class="text-slate-700">{{ objective }}</span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            
+            <!-- Instructor Info -->
+            <div class="bg-gradient-to-r from-slate-50 to-slate-100 p-8 rounded-lg" data-aos="fade-up">
+                <h2 class="text-2xl font-bold text-slate-900 mb-6">
+                    <i class="fas fa-user-tie text-emerald-600 mr-2"></i> Tentang Instruktur
+                </h2>
+                
+                <div class="flex items-center gap-6">
+                    <div class="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-400 to-blue-600 flex items-center justify-center text-white font-bold text-2xl flex-shrink-0">
+                        {{ course.instructor.username[0:1]|upper }}
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-slate-900">
+                            {% if course.instructor %}{{ course.instructor.username }}{% else %}Expert Instructor{% endif %}
+                        </h3>
+                        <p class="text-slate-600 mb-3">Expert dengan 10+ tahun pengalaman industri</p>
+                        <p class="text-slate-600 text-sm">Passionate tentang mendidik dan memberdayakan generasi berikutnya. Telah melatih 5000+ siswa di seluruh dunia.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sidebar -->
+        <div class="lg:col-span-1">
+            <!-- CTA Card -->
+            <div class="bg-white rounded-lg shadow-lg p-8 sticky top-20 space-y-6" data-aos="fade-left">
+                <!-- Price / Free Badge -->
+                <div class="text-center">
+                    <p class="text-3xl font-bold text-emerald-600">GRATIS</p>
+                    <p class="text-sm text-slate-600">Akses penuh selamanya</p>
+                </div>
+                
+                <!-- Stats -->
+                <div class="border-y border-slate-200 py-6 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <span class="text-slate-600"><i class="fas fa-users mr-2 text-emerald-600"></i> Siswa</span>
+                        <span class="font-bold text-slate-900">50K+</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-slate-600"><i class="fas fa-star mr-2 text-amber-400"></i> Rating</span>
+                        <span class="font-bold text-slate-900">4.8/5</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-slate-600"><i class="fas fa-book-open mr-2 text-blue-600"></i> Lessons</span>
+                        <span class="font-bold text-slate-900">{{ total_lessons }}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-slate-600"><i class="fas fa-layer-group mr-2 text-purple-600"></i> Topik</span>
+                        <span class="font-bold text-slate-900">{{ total_topics }}</span>
+                    </div>
+                </div>
+                
+                <!-- Enroll Button -->
+                {% if current_user.is_authenticated and is_enrolled %}
+                    <a href="{{ url_for('courses.detail', course_id=course.id) }}" class="w-full block text-center py-3 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 transition btn-hover-lift">
+                        <i class="fas fa-book-open mr-2"></i> Buka Kursus
+                    </a>
+                    <p class="text-xs text-slate-600 text-center">Anda sudah terdaftar di kursus ini</p>
+                {% elif current_user.is_authenticated %}
+                    <form method="POST" action="{{ url_for('courses.enroll', course_id=course.id) }}">
+                        <button type="submit" class="w-full py-3 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 transition btn-hover-lift">
+                            <i class="fas fa-plus-circle mr-2"></i> Daftar Gratis
+                        </button>
+                    </form>
+                {% else %}
+                    <a href="{{ url_for('auth.login') }}" class="w-full block text-center py-3 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 transition btn-hover-lift">
+                        <i class="fas fa-sign-in-alt mr-2"></i> Login & Daftar
+                    </a>
+                {% endif %}
+                
+                <!-- Features -->
+                <div class="pt-4 space-y-3">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-infinity text-emerald-600"></i>
+                        <span class="text-sm text-slate-700">Akses seumur hidup</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-certificate text-emerald-600"></i>
+                        <span class="text-sm text-slate-700">Sertifikat resmi</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-mobile-alt text-emerald-600"></i>
+                        <span class="text-sm text-slate-700">Belajar di mana saja</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-comments text-emerald-600"></i>
+                        <span class="text-sm text-slate-700">Support komunitas</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const videoElement = document.getElementById('previewVideo');
+    const videoContainer = document.getElementById('videoContainer');
+    const qualityButtons = document.querySelectorAll('.quality-selector');
+    
+    if (!videoElement || qualityButtons.length === 0) {
+        return;
+    }
+    
+    // Initialize Plyr player
+    const player = new Plyr(videoElement, {
+        controls: [
+            'play-large',
+            'play',
+            'progress',
+            'current-time',
+            'mute',
+            'volume',
+            'captions',
+            'settings',
+            'pip',
+            'airplay',
+            'fullscreen'
+        ],
+        settings: ['captions', 'quality', 'speed', 'loop'],
+        quality: {
+            default: 720,
+            options: [480, 720, 1080]
+        }
+    });
+    
+    // Get stored quality preference
+    const courseId = `{{ course.id }}`;
+    const storageKey = `video_quality_preview_${courseId}`;
+    const savedQuality = localStorage.getItem(storageKey);
+    
+    let defaultButton = null;
+    let savedButton = null;
+    
+    qualityButtons.forEach(button => {
+        if (button.dataset.default === 'true') {
+            defaultButton = button;
+        }
+        if (button.textContent.trim() === (savedQuality || '')) {
+            savedButton = button;
+        }
+        
+        button.addEventListener('click', function() {
+            changeQuality(this);
+        });
+    });
+    
+    const initialButton = savedButton || defaultButton;
+    if (initialButton) {
+        changeQuality(initialButton);
+    }
+    
+    function changeQuality(button) {
+        const src = button.dataset.src;
+        const type = button.dataset.type;
+        const quality = button.textContent.trim();
+        
+        qualityButtons.forEach(btn => {
+            btn.classList.remove('bg-emerald-600');
+            btn.classList.add('bg-gray-800');
+        });
+        
+        button.classList.remove('bg-gray-800');
+        button.classList.add('bg-emerald-600');
+        
+        const currentTime = videoElement.currentTime;
+        
+        videoElement.querySelector('source').src = src;
+        videoElement.querySelector('source').type = type;
+        
+        videoElement.load();
+        videoElement.currentTime = currentTime;
+        videoElement.play().catch(err => {
+            console.log('Playback failed:', err);
+        });
+        
+        localStorage.setItem(storageKey, quality);
+    }
+});
+</script>
+{% endblock %}

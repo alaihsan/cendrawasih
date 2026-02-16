@@ -152,6 +152,53 @@ def view_lesson(lesson_id):
                          progress=progress, prev_lesson=prev_lesson, next_lesson=next_lesson,
                          video_sources=video_sources)
 
+@bp.route('/<int:course_id>/preview')
+def course_preview(course_id):
+    """Preview course - show overview and first lesson"""
+    course = CourseService.get_course_by_id(course_id)
+    
+    if not course:
+        flash('Kursus tidak ditemukan', 'danger')
+        return redirect(url_for('courses.list'))
+    
+    # Get first topic and lesson for preview
+    first_topic = course.topics.order_by('order').first() if course.topics else None
+    first_lesson = first_topic.lessons.order_by('order').first() if first_topic else None
+    
+    # Build video sources for first lesson if it's a video
+    video_sources = []
+    if first_lesson and first_lesson.content_type == 'video' and first_lesson.compressed_video_versions:
+        versions_map = first_lesson.compressed_video_versions
+        quality_order = [
+            ('low', 'Low (480p)', 'video/mp4'),
+            ('medium', 'Medium (720p)', 'video/mp4'),
+            ('high', 'High (1080p)', 'video/mp4'),
+            ('webm', 'WebM (720p)', 'video/webm')
+        ]
+        
+        for key, label, mime_type in quality_order:
+            if key in versions_map and versions_map[key]:
+                video_sources.append({
+                    'src': versions_map[key],
+                    'type': mime_type,
+                    'quality': label.split('(')[0].strip(),
+                    'label': label
+                })
+    
+    # Calculate course stats
+    total_lessons = sum(len(topic.lessons) for topic in course.topics)
+    total_topics = len(course.topics)
+    is_enrolled = current_user.is_authenticated and CourseService.is_student_enrolled(current_user.id, course_id)
+    
+    return render_template('courses/preview.html', 
+                         course=course,
+                         first_lesson=first_lesson,
+                         first_topic=first_topic,
+                         video_sources=video_sources,
+                         total_lessons=total_lessons,
+                         total_topics=total_topics,
+                         is_enrolled=is_enrolled)
+
 @bp.route('/lesson/<int:lesson_id>/mark-complete', methods=['POST'])
 @login_required
 def mark_complete(lesson_id):
