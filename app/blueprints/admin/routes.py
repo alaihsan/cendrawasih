@@ -1,9 +1,10 @@
-from flask import render_template, redirect, url_for, flash, request
+from flask import render_template, redirect, url_for, flash, request, current_app
 from flask_login import current_user, login_required
 from app.blueprints.admin import bp
 from app.utils.decorators import teacher_required, admin_required
 from app.forms.admin_forms import CourseForm, TopicForm, LessonForm
 from app.services.course_service import CourseService
+from app.utils.file_handler import FileHandler
 from app import db
 
 # ============ DASHBOARD ============
@@ -239,7 +240,7 @@ def topic_delete(topic_id):
 @bp.route('/topics/<int:topic_id>/lessons/create', methods=['GET', 'POST'])
 @login_required
 def lesson_create(topic_id):
-    """Create lesson"""
+    """Create lesson dengan support untuk upload video/gambar"""
     from app.models.course import Topic
     topic = Topic.query.get(topic_id)
     
@@ -254,16 +255,60 @@ def lesson_create(topic_id):
     
     form = LessonForm()
     if form.validate_on_submit():
+        content_url = form.content_url.data
+        compression_status = 'pending'
+        compression_metadata = None
+        compressed_video_versions = None
+        
+        # Jika upload video dari file
+        if form.content_type.data == 'video' and form.video_file.data:
+            media_folder = current_app.config.get('MEDIA_UPLOAD_FOLDER') or 'app/static/uploads/media'
+            compressed_folder = current_app.config.get('COMPRESSED_FOLDER') or 'app/static/uploads/compressed'
+            
+            upload_result = FileHandler.save_video_file(form.video_file.data, media_folder, compressed_folder)
+            
+            if upload_result['success']:
+                content_url = upload_result['original_path']
+                compression_status = 'completed'
+                compression_metadata = {
+                    'original_size': upload_result['original_size'],
+                    'total_compressed_size': upload_result.get('total_compressed_size'),
+                    'compression_ratio': upload_result.get('compression_ratio')
+                }
+                compressed_video_versions = upload_result.get('versions', {})
+                flash(f"Video berhasil diupload! Kompresi: {upload_result.get('compression_ratio', 0):.1f}%", 'success')
+            else:
+                flash(f"Error upload video: {upload_result['message']}", 'danger')
+                return render_template('admin/lessons/create.html', form=form, topic=topic, course=course)
+        
+        # Create lesson
         lesson, message = CourseService.create_lesson(
             topic_id,
             title=form.title.data,
             content_type=form.content_type.data,
-            content_url=form.content_url.data,
+            content_url=content_url,
             text_content=form.text_content.data,
             order=form.order.data
         )
         
         if lesson:
+            # Save compression metadata
+            lesson.compression_status = compression_status
+            lesson.compression_metadata = compression_metadata
+            lesson.compressed_video_versions = compressed_video_versions
+            db.session.commit()
+            
+            # Handle image upload jika ada
+            if form.image_file.data:
+                image_folder = current_app.config.get('MEDIA_UPLOAD_FOLDER') or 'app/static/uploads/media'
+                compressed_folder = current_app.config.get('COMPRESSED_FOLDER') or 'app/static/uploads/compressed'
+                
+                image_result = FileHandler.save_image_file(form.image_file.data, image_folder, compressed_folder)
+                if image_result['success']:
+                    lesson.compressed_image = image_result['jpeg_path']
+                    db.session.commit()
+                    flash(f"Gambar berhasil diupload! Kompresi: {image_result['compression_ratio']:.1f}%", 'info')
+            
             flash('Pembelajaran berhasil dibuat!', 'success')
             return redirect(url_for('admin.course_detail', course_id=course.id))
         else:
@@ -274,7 +319,7 @@ def lesson_create(topic_id):
 @bp.route('/lessons/<int:lesson_id>/edit', methods=['GET', 'POST'])
 @login_required
 def lesson_edit(lesson_id):
-    """Edit lesson"""
+    """Edit lesson dengan support untuk upload video/gambar"""
     lesson = CourseService.get_lesson_by_id(lesson_id)
     
     if not lesson:
@@ -291,10 +336,44 @@ def lesson_edit(lesson_id):
     if form.validate_on_submit():
         lesson.title = form.title.data
         lesson.content_type = form.content_type.data
-        lesson.content_url = form.content_url.data
         lesson.text_content = form.text_content.data
         lesson.order = form.order.data
+        
+        # Handle content URL atau video upload
+        if form.content_type.data == 'video' and form.video_file.data:
+            media_folder = current_app.config.get('MEDIA_UPLOAD_FOLDER') or 'app/static/uploads/media'
+            compressed_folder = current_app.config.get('COMPRESSED_FOLDER') or 'app/static/uploads/compressed'
+            
+            upload_result = FileHandler.save_video_file(form.video_file.data, media_folder, compressed_folder)
+            
+            if upload_result['success']:
+                lesson.content_url = upload_result['original_path']
+                lesson.compression_status = 'completed'
+                lesson.compression_metadata = {
+                    'original_size': upload_result['original_size'],
+                    'total_compressed_size': upload_result.get('total_compressed_size'),
+                    'compression_ratio': upload_result.get('compression_ratio')
+                }
+                lesson.compressed_video_versions = upload_result.get('versions', {})
+                flash(f"Video berhasil diupload! Kompresi: {upload_result.get('compression_ratio', 0):.1f}%", 'success')
+            else:
+                flash(f"Error upload video: {upload_result['message']}", 'danger')
+                return render_template('admin/lessons/edit.html', form=form, lesson=lesson, topic=topic, course=course)
+        elif form.content_url.data:
+            lesson.content_url = form.content_url.data
+        
         db.session.commit()
+        
+        # Handle image upload jika ada
+        if form.image_file.data:
+            image_folder = current_app.config.get('MEDIA_UPLOAD_FOLDER') or 'app/static/uploads/media'
+            compressed_folder = current_app.config.get('COMPRESSED_FOLDER') or 'app/static/uploads/compressed'
+            
+            image_result = FileHandler.save_image_file(form.image_file.data, image_folder, compressed_folder)
+            if image_result['success']:
+                lesson.compressed_image = image_result['jpeg_path']
+                db.session.commit()
+                flash(f"Gambar berhasil diupload! Kompresi: {image_result['compression_ratio']:.1f}%", 'info')
         
         flash('Pembelajaran berhasil diupdate!', 'success')
         return redirect(url_for('admin.course_detail', course_id=course.id))

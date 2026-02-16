@@ -1,5 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, TextAreaField, SelectField, SubmitField, IntegerField
+from wtforms.fields import FileField
 from wtforms.validators import DataRequired, Length, Optional
 
 class CourseForm(FlaskForm):
@@ -43,10 +44,18 @@ class LessonForm(FlaskForm):
     ])
     content_type = SelectField('Tipe Konten', choices=[
         ('text', 'Text'),
-        ('video', 'Video'),
+        ('video', 'Video Upload'),
+        ('video_url', 'Video URL'),
         ('pdf', 'PDF')
     ], default='text')
     content_url = StringField('URL Konten', validators=[Optional(), Length(max=255)])
+    
+    # Video Upload Field
+    video_file = FileField('Unggah Video', validators=[Optional()])
+    
+    # Image/Thumbnail Upload Field
+    image_file = FileField('Unggah Gambar/Thumbnail', validators=[Optional()])
+    
     text_content = TextAreaField('Konten Teks', validators=[Optional()])
     order = IntegerField('Urutan', validators=[Optional()], default=0)
     submit = SubmitField('Simpan Pembelajaran')
