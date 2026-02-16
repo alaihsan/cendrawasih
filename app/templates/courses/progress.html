@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}Progress {{ course.title }} - Cendrawasih{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div class="fade-in">
+        <!-- Breadcrumb -->
+        <div class="mb-8 text-sm text-gray-600">
+            <a href="{{ url_for('main.index') }}" class="hover:text-emerald-600">Beranda</a>
+            <span class="mx-2">/</span>
+            <a href="{{ url_for('courses.list') }}" class="hover:text-emerald-600">Kursus</a>
+            <span class="mx-2">/</span>
+            <a href="{{ url_for('courses.detail', course_id=course.id) }}" class="hover:text-emerald-600">{{ course.title }}</a>
+            <span class="mx-2">/</span>
+            <span class="text-gray-900 font-semibold">Progress</span>
+        </div>
+        
+        <!-- Header -->
+        <div class="mb-12">
+            <h1 class="text-4xl font-bold text-gray-900 mb-4">Progress Pembelajaran</h1>
+            <p class="text-lg text-gray-600">{{ course.title }}</p>
+        </div>
+        
+        <!-- Overall Progress -->
+        <div class="bg-white rounded-lg shadow-md p-8 mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="text-center">
+                    <p class="text-gray-600 font-semibold mb-2">Total Pembelajaran</p>
+                    <p class="text-5xl font-bold text-emerald-600">{{ progress_data.total_lessons }}</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-gray-600 font-semibold mb-2">Sudah Diselesaikan</p>
+                    <p class="text-5xl font-bold text-blue-600">{{ progress_data.completed_lessons }}</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-gray-600 font-semibold mb-2">Completion</p>
+                    <p class="text-5xl font-bold text-amber-600">{{ progress_data.progress_percent }}%</p>
+                </div>
+            </div>
+            
+            <!-- Progress Bar -->
+            <div class="mt-8">
+                <div class="flex justify-between mb-2">
+                    <span class="font-semibold text-gray-900">Overall Progress</span>
+                    <span class="text-gray-600">{{ progress_data.progress_percent }}%</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-4">
+                    <div class="bg-gradient-to-r from-emerald-500 to-emerald-600 h-4 rounded-full transition-all" style="width: {{ progress_data.progress_percent }}%"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Topics & Lessons -->
+        <div class="space-y-6">
+            {% for topic in progress_data.topics %}
+                <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                    <!-- Topic Header -->
+                    <div class="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-8 py-6">
+                        <h2 class="text-2xl font-bold">{{ topic.topic_title }}</h2>
+                        <p class="text-emerald-100 mt-2">{{ topic.completed }} / {{ topic.total }} pembelajaran selesai</p>
+                    </div>
+                    
+                    <!-- Lessons -->
+                    <div class="p-8">
+                        <div class="space-y-3">
+                            {% for lesson in topic.lessons %}
+                                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                                    <div class="flex items-center flex-1">
+                                        {% if lesson.completed %}
+                                            <i class="fas fa-check-circle text-green-500 text-2xl mr-4"></i>
+                                            <span class="font-semibold text-gray-900">{{ lesson.lesson_title }}</span>
+                                        {% else %}
+                                            <i class="fas fa-file-alt text-gray-400 text-2xl mr-4"></i>
+                                            <span class="text-gray-700">{{ lesson.lesson_title }}</span>
+                                        {% endif %}
+                                    </div>
+                                    <a href="{{ url_for('courses.view_lesson', lesson_id=lesson.lesson_id) }}" class="ml-4 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition text-sm font-semibold">
+                                        {% if lesson.completed %}
+                                            <i class="fas fa-redo mr-2"></i> Ulang
+                                        {% else %}
+                                            <i class="fas fa-play mr-2"></i> Mulai
+                                        {% endif %}
+                                    </a>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="mt-12 flex justify-center gap-4">
+            <a href="{{ url_for('courses.detail', course_id=course.id) }}" class="px-8 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition font-semibold">
+                <i class="fas fa-arrow-left mr-2"></i> Kembali
+            </a>
+            <a href="{{ url_for('main.dashboard') }}" class="px-8 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition font-semibold">
+                <i class="fas fa-home mr-2"></i> Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

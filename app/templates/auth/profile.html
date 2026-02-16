@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}Profil - Cendrawasih{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div class="fade-in">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-4xl font-bold text-gray-900 mb-2">Profil Saya</h1>
+            <p class="text-gray-600">Kelola informasi akun Anda</p>
+        </div>
+        
+        <!-- Profile Card -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <!-- Profile Info -->
+            <div class="md:col-span-2">
+                <div class="bg-white rounded-lg shadow-md p-8">
+                    <div class="flex items-center mb-6">
+                        <div class="w-20 h-20 bg-emerald-500 text-white rounded-full flex items-center justify-center text-4xl font-bold">
+                            {{ user.username[0].upper() }}
+                        </div>
+                        <div class="ml-6">
+                            <h2 class="text-2xl font-bold text-gray-900">{{ user.username }}</h2>
+                            <p class="text-gray-600">{{ user.email }}</p>
+                            <span class="inline-block mt-2 px-3 py-1 bg-emerald-100 text-emerald-800 text-sm font-semibold rounded-full">
+                                {% if user.role == 'teacher' %}
+                                    <i class="fas fa-chalkboard-user"></i> Pengajar
+                                {% elif user.role == 'admin' %}
+                                    <i class="fas fa-user-shield"></i> Admin
+                                {% else %}
+                                    <i class="fas fa-graduation-cap"></i> Pelajar
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <hr class="my-6">
+                    
+                    <!-- Profile Details -->
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700">Username</label>
+                            <p class="text-gray-900 font-medium">{{ user.username }}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700">Email</label>
+                            <p class="text-gray-900 font-medium">{{ user.email }}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700">Role</label>
+                            <p class="text-gray-900 font-medium capitalize">{{ user.role }}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700">Bergabung Sejak</label>
+                            <p class="text-gray-900 font-medium">{{ user.created_at.strftime('%d %B %Y') }}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-8 flex space-x-4">
+                        <button class="bg-emerald-600 text-white px-6 py-2 rounded-lg hover:bg-emerald-700 transition">
+                            <i class="fas fa-edit mr-2"></i> Edit Profil
+                        </button>
+                        <button class="bg-gray-200 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-300 transition">
+                            <i class="fas fa-lock mr-2"></i> Ubah Password
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Sidebar -->
+            <div class="md:col-span-1">
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h3 class="text-lg font-bold text-gray-900 mb-4">Statistik</h3>
+                    <div class="space-y-4">
+                        <div class="text-center p-4 bg-emerald-50 rounded-lg">
+                            <p class="text-2xl font-bold text-emerald-600">0</p>
+                            <p class="text-sm text-gray-600">Kursus Diambil</p>
+                        </div>
+                        <div class="text-center p-4 bg-amber-50 rounded-lg">
+                            <p class="text-2xl font-bold text-amber-600">0%</p>
+                            <p class="text-sm text-gray-600">Rata-rata Progress</p>
+                        </div>
+                        <div class="text-center p-4 bg-blue-50 rounded-lg">
+                            <p class="text-2xl font-bold text-blue-600">0</p>
+                            <p class="text-sm text-gray-600">Sertifikat</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-lg shadow-md p-6 mt-6">
+                    <h3 class="text-lg font-bold text-gray-900 mb-4">Aksi Cepat</h3>
+                    <div class="space-y-2">
+                        <a href="{{ url_for('main.dashboard') }}" class="block text-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
+                            <i class="fas fa-tachometer-alt mr-2"></i> Dashboard
+                        </a>
+                        <a href="#" class="block text-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
+                            <i class="fas fa-book mr-2"></i> Kursus Saya
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

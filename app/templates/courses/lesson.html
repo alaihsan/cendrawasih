@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+
+{% block title %}{{ lesson.title }} - Cendrawasih{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        <!-- Main Content -->
+        <div class="lg:col-span-3">
+            <div class="fade-in">
+                <!-- Breadcrumb -->
+                <div class="mb-6 text-sm text-gray-600">
+                    <a href="{{ url_for('main.index') }}" class="hover:text-emerald-600">Beranda</a>
+                    <span class="mx-2">/</span>
+                    <a href="{{ url_for('courses.list') }}" class="hover:text-emerald-600">Kursus</a>
+                    <span class="mx-2">/</span>
+                    <a href="{{ url_for('courses.detail', course_id=course.id) }}" class="hover:text-emerald-600">{{ course.title }}</a>
+                    <span class="mx-2">/</span>
+                    <span class="text-gray-900 font-semibold">{{ lesson.title }}</span>
+                </div>
+                
+                <!-- Lesson Content -->
+                <div class="bg-white rounded-lg shadow-md overflow-hidden mb-8">
+                    <!-- Video/Content Area -->
+                    <div class="bg-gray-900 aspect-video flex items-center justify-center">
+                        {% if lesson.content_type == 'video' %}
+                            {% if lesson.content_url %}
+                                <video controls class="w-full h-full" id="videoPlayer">
+                                    <source src="{{ lesson.content_url }}" type="video/mp4">
+                                    Browser Anda tidak mendukung pemutaran video
+                                </video>
+                            {% else %}
+                                <div class="text-white text-center">
+                                    <i class="fas fa-video text-6xl mb-4 opacity-50"></i>
+                                    <p class="text-gray-400">Video tidak tersedia</p>
+                                </div>
+                            {% endif %}
+                        {% elif lesson.content_type == 'text' %}
+                            <div class="text-white p-8 max-w-4xl">
+                                <i class="fas fa-file-alt text-6xl mb-4 opacity-50 block text-center"></i>
+                                <p class="text-center text-gray-300">Konten teks</p>
+                            </div>
+                        {% else %}
+                            <div class="text-white text-center">
+                                <i class="fas fa-question-circle text-6xl mb-4 opacity-50"></i>
+                                <p class="text-gray-400">Tipe konten tidak dikenal</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Lesson Info -->
+                    <div class="p-8">
+                        <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ lesson.title }}</h1>
+                        <div class="flex items-center justify-between text-gray-600 mb-6">
+                            <p>
+                                <i class="fas fa-bookmark mr-2"></i>
+                                Topik: {{ topic.title }}
+                            </p>
+                            {% if progress and progress.is_completed %}
+                                <span class="inline-flex items-center px-3 py-1 bg-green-100 text-green-800 font-semibold rounded-full text-sm">
+                                    <i class="fas fa-check-circle mr-2"></i> Sudah Diselesaikan
+                                </span>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Lesson Content Text -->
+                        {% if lesson.text_content %}
+                            <div class="prose prose-lg max-w-none mb-8 text-gray-700">
+                                {{ lesson.text_content }}
+                            </div>
+                        {% endif %}
+                        
+                        <!-- Mark Complete Button -->
+                        <div class="bg-blue-50 border-l-4 border-blue-600 p-4 rounded mb-6">
+                            {% if progress and progress.is_completed %}
+                                <p class="text-blue-800">
+                                    <i class="fas fa-check-circle mr-2"></i>
+                                    Anda telah menyelesaikan pembelajaran ini
+                                </p>
+                            {% else %}
+                                <form method="POST" action="{{ url_for('courses.mark_complete', lesson_id=lesson.id) }}" class="inline">
+                                    <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition font-semibold">
+                                        <i class="fas fa-check mr-2"></i> Tandai Selesai
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Navigation -->
+                <div class="flex justify-between gap-4">
+                    {% if prev_lesson %}
+                        <a href="{{ url_for('courses.view_lesson', lesson_id=prev_lesson.id) }}" class="flex-1 bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition text-center font-semibold">
+                            <i class="fas fa-chevron-left mr-2"></i> Sebelumnya
+                        </a>
+                    {% else %}
+                        <div class="flex-1"></div>
+                    {% endif %}
+                    
+                    {% if next_lesson %}
+                        <a href="{{ url_for('courses.view_lesson', lesson_id=next_lesson.id) }}" class="flex-1 bg-emerald-600 text-white px-6 py-3 rounded-lg hover:bg-emerald-700 transition text-center font-semibold">
+                            Selanjutnya <i class="fas fa-chevron-right ml-2"></i>
+                        </a>
+                    {% else %}
+                        <a href="{{ url_for('courses.detail', course_id=course.id) }}" class="flex-1 bg-emerald-600 text-white px-6 py-3 rounded-lg hover:bg-emerald-700 transition text-center font-semibold">
+                            Kembali ke Kursus
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sidebar: Course Content -->
+        <div class="lg:col-span-1">
+            <div class="bg-white rounded-lg shadow-md p-6 sticky top-20">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">{{ topic.title }}</h3>
+                
+                <ul class="space-y-2">
+                    {% for lesson_item in topic.lessons %}
+                        <li>
+                            <a href="{{ url_for('courses.view_lesson', lesson_id=lesson_item.id) }}" 
+                               class="block px-3 py-2 rounded-lg transition
+                               {% if lesson_item.id == lesson.id %}
+                                   bg-emerald-100 text-emerald-900 font-semibold border-l-4 border-emerald-600
+                               {% else %}
+                                   text-gray-700 hover:bg-gray-100
+                               {% endif %}
+                            ">
+                                {% if progress and lesson_item.id == lesson.id %}
+                                    <i class="fas fa-play-circle text-emerald-600 mr-2"></i>
+                                {% else %}
+                                    <i class="fas fa-file-alt text-gray-400 mr-2"></i>
+                                {% endif %}
+                                <span class="line-clamp-1">{{ lesson_item.title }}</span>
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            
+            <!-- Course Progress -->
+            <div class="bg-white rounded-lg shadow-md p-6 mt-6">
+                <h4 class="font-semibold text-gray-900 mb-3">Progress Kursus</h4>
+                <div class="w-full bg-gray-200 rounded-full h-3 mb-2">
+                    <div class="bg-emerald-600 h-3 rounded-full" style="width: {{ (loop.index0 + 1) * 10 }}%"></div>
+                </div>
+                <p class="text-sm text-gray-600">{{ (loop.index0 + 1) * 10 }}% Selesai</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .line-clamp-1 {
+        display: -webkit-box;
+        -webkit-line-clamp: 1;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+</style>
+{% endblock %}
