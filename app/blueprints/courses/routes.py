@@ -125,8 +125,32 @@ def view_lesson(lesson_id):
     prev_lesson = lessons_in_topic[current_index - 1] if current_index and current_index > 0 else None
     next_lesson = lessons_in_topic[current_index + 1] if current_index is not None and current_index < len(lessons_in_topic) - 1 else None
     
+    # Prepare video sources for quality selector
+    video_sources = []
+    if lesson.content_type == 'video' and lesson.compressed_video_versions:
+        # Build sources array from compressed versions
+        versions_map = lesson.compressed_video_versions
+        
+        # Order: low, medium, high, webm (with quality labels)
+        quality_order = [
+            ('low', 'Low (480p)', 'video/mp4'),
+            ('medium', 'Medium (720p)', 'video/mp4'),
+            ('high', 'High (1080p)', 'video/mp4'),
+            ('webm', 'WebM (720p)', 'video/webm')
+        ]
+        
+        for key, label, mime_type in quality_order:
+            if key in versions_map and versions_map[key]:
+                video_sources.append({
+                    'src': versions_map[key],
+                    'type': mime_type,
+                    'quality': label.split('(')[0].strip(),  # Extract just the quality level
+                    'label': label
+                })
+    
     return render_template('courses/lesson.html', lesson=lesson, topic=topic, course=course,
-                         progress=progress, prev_lesson=prev_lesson, next_lesson=next_lesson)
+                         progress=progress, prev_lesson=prev_lesson, next_lesson=next_lesson,
+                         video_sources=video_sources)
 
 @bp.route('/lesson/<int:lesson_id>/mark-complete', methods=['POST'])
 @login_required

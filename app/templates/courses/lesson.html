@@ -22,13 +22,38 @@
                 <!-- Lesson Content -->
                 <div class="bg-white rounded-lg shadow-md overflow-hidden mb-8">
                     <!-- Video/Content Area -->
-                    <div class="bg-gray-900 aspect-video flex items-center justify-center">
+                    <div class="bg-gray-900 aspect-video flex items-center justify-center relative">
                         {% if lesson.content_type == 'video' %}
-                            {% if lesson.content_url %}
-                                <video controls class="w-full h-full" id="videoPlayer">
-                                    <source src="{{ lesson.content_url }}" type="video/mp4">
-                                    Browser Anda tidak mendukung pemutaran video
-                                </video>
+                            {% if lesson.content_url or video_sources %}
+                                <!-- Quality Selector (for compressed videos) -->
+                                {% if video_sources %}
+                                    <div class="absolute top-4 right-4 z-20 flex gap-2 flex-wrap justify-end max-w-xs">
+                                        {% for source in video_sources %}
+                                            <button class="quality-selector px-3 py-1 bg-gray-800 hover:bg-emerald-600 text-white text-xs font-semibold rounded transition" 
+                                                    data-quality="{{ source.quality }}" 
+                                                    data-src="{{ source.src }}" 
+                                                    data-type="{{ source.type }}"
+                                                    {% if loop.first %}data-default="true"{% endif %}>
+                                                {{ source.quality }}
+                                            </button>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                
+                                <!-- Plyr Video Player -->
+                                <div id="videoContainer" class="w-full h-full">
+                                    <video id="lessonVideo" playsinline controls>
+                                        {% if video_sources %}
+                                            <!-- First source is default -->
+                                            {% set first_source = video_sources[0] %}
+                                            <source src="{{ first_source.src }}" type="{{ first_source.type }}">
+                                        {% else %}
+                                            <!-- Fallback to content_url if no compressed versions -->
+                                            <source src="{{ lesson.content_url }}" type="video/mp4">
+                                        {% endif %}
+                                        Browser Anda tidak mendukung pemutaran video
+                                    </video>
+                                </div>
                             {% else %}
                                 <div class="text-white text-center">
                                     <i class="fas fa-video text-6xl mb-4 opacity-50"></i>
@@ -159,4 +184,101 @@
         overflow: hidden;
     }
 </style>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const videoElement = document.getElementById('lessonVideo');
+    const videoContainer = document.getElementById('videoContainer');
+    const qualityButtons = document.querySelectorAll('.quality-selector');
+    
+    if (!videoElement || qualityButtons.length === 0) {
+        return; // No video or quality buttons
+    }
+    
+    // Initialize Plyr player
+    const player = new Plyr(videoElement, {
+        controls: [
+            'play-large',
+            'play',
+            'progress',
+            'current-time',
+            'mute',
+            'volume',
+            'captions',
+            'settings',
+            'pip',
+            'airplay',
+            'fullscreen'
+        ],
+        settings: ['captions', 'quality', 'speed', 'loop'],
+        quality: {
+            default: 720,
+            options: [480, 720, 1080]
+        }
+    });
+    
+    // Get stored quality preference from localStorage
+    const lessonId = `{{ lesson.id }}`;
+    const storageKey = `video_quality_${lessonId}`;
+    const savedQuality = localStorage.getItem(storageKey);
+    
+    // Set default or saved quality
+    let defaultButton = null;
+    let savedButton = null;
+    
+    qualityButtons.forEach(button => {
+        if (button.dataset.default === 'true') {
+            defaultButton = button;
+        }
+        if (button.textContent.trim() === (savedQuality || '')) {
+            savedButton = button;
+        }
+        
+        button.addEventListener('click', function() {
+            changeQuality(this);
+        });
+    });
+    
+    // Apply saved quality or default
+    const initialButton = savedButton || defaultButton;
+    if (initialButton) {
+        changeQuality(initialButton);
+    }
+    
+    function changeQuality(button) {
+        const src = button.dataset.src;
+        const type = button.dataset.type;
+        const quality = button.textContent.trim();
+        
+        // Update all button styles
+        qualityButtons.forEach(btn => {
+            btn.classList.remove('bg-emerald-600');
+            btn.classList.add('bg-gray-800');
+        });
+        
+        // Highlight selected button
+        button.classList.remove('bg-gray-800');
+        button.classList.add('bg-emerald-600');
+        
+        // Get current playback time
+        const currentTime = videoElement.currentTime;
+        
+        // Update video source
+        videoElement.querySelector('source').src = src;
+        videoElement.querySelector('source').type = type;
+        
+        // Reload and restart playback
+        videoElement.load();
+        videoElement.currentTime = currentTime;
+        videoElement.play().catch(err => {
+            console.log('Playback failed:', err);
+        });
+        
+        // Save preference to localStorage
+        localStorage.setItem(storageKey, quality);
+    }
+});
+</script>
+{% endblock %}
 {% endblock %}
