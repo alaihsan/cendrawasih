@@ -33,11 +33,13 @@ def create_app(config_name='default'):
     from app.blueprints.auth import bp as auth_bp
     from app.blueprints.courses import bp as courses_bp
     from app.blueprints.api import bp as api_bp
+    from app.blueprints.admin import bp as admin_bp
     
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(courses_bp, url_prefix='/courses')
     app.register_blueprint(api_bp, url_prefix='/api')
+    app.register_blueprint(admin_bp, url_prefix='/admin')
 
     return app
 

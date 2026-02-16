@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Pelajaran - Cendrawasih{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div class="fade-in">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-4xl font-bold text-gray-900">Edit Pelajaran</h1>
+            <p class="text-gray-600 mt-2">{{ lesson.title }}</p>
+        </div>
+        
+        <!-- Form -->
+        <div class="bg-white rounded-lg shadow-md p-8">
+            <form method="POST" class="space-y-6">
+                {{ form.hidden_tag() }}
+                
+                <!-- Title -->
+                <div>
+                    <label for="title" class="block text-sm font-semibold text-gray-900 mb-2">Judul Pelajaran</label>
+                    {{ form.title(class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500") }}
+                </div>
+                
+                <!-- Content Type -->
+                <div>
+                    <label for="content_type" class="block text-sm font-semibold text-gray-900 mb-2">Tipe Konten</label>
+                    {{ form.content_type(class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500", onchange="updateContentFields()") }}
+                </div>
+                
+                <!-- Content URL -->
+                <div id="url-field">
+                    <label for="content_url" class="block text-sm font-semibold text-gray-900 mb-2">URL Konten</label>
+                    {{ form.content_url(class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500") }}
+                </div>
+                
+                <!-- Text Content -->
+                <div id="text-field" class="hidden">
+                    <label for="text_content" class="block text-sm font-semibold text-gray-900 mb-2">Konten Teks</label>
+                    {{ form.text_content(class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none", rows="8") }}
+                </div>
+                
+                <!-- Order -->
+                <div>
+                    <label for="order" class="block text-sm font-semibold text-gray-900 mb-2">Urutan</label>
+                    {{ form.order(class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500", type="number") }}
+                </div>
+                
+                <!-- Buttons -->
+                <div class="flex gap-4 pt-4">
+                    {{ form.submit(class="flex-1 bg-emerald-600 text-white px-6 py-3 rounded-lg hover:bg-emerald-700 transition font-semibold", value="Simpan") }}
+                    <a href="{{ url_for('admin.course_detail', course_id=lesson.topic.course_id) }}" class="flex-1 text-center bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition font-semibold">
+                        Batal
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function updateContentFields() {
+    const contentType = document.querySelector('select[name="content_type"]').value;
+    const urlField = document.getElementById('url-field');
+    const textField = document.getElementById('text-field');
+    
+    if (contentType === 'text') {
+        urlField.classList.add('hidden');
+        textField.classList.remove('hidden');
+    } else {
+        urlField.classList.remove('hidden');
+        textField.classList.add('hidden');
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', updateContentFields);
+</script>
+{% endblock %}

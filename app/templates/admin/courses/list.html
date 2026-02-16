@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}Kelola Kursus - Cendrawasih{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div class="fade-in">
+        <!-- Header -->
+        <div class="mb-8 flex justify-between items-center">
+            <div>
+                <h1 class="text-4xl font-bold text-gray-900">Kelola Kursus</h1>
+                <p class="text-gray-600 mt-2">{{ courses|length }} kursus total</p>
+            </div>
+            <a href="{{ url_for('admin.course_create') }}" class="bg-emerald-600 text-white px-6 py-3 rounded-lg hover:bg-emerald-700 transition font-semibold">
+                <i class="fas fa-plus mr-2"></i> Kursus Baru
+            </a>
+        </div>
+        
+        <!-- Courses Table -->
+        {% if courses %}
+            <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                <table class="w-full">
+                    <thead>
+                        <tr class="bg-gray-50 border-b">
+                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Judul Kursus</th>
+                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Pengajar</th>
+                            <th class="px-6 py-4 text-center text-sm font-semibold text-gray-900">Siswa</th>
+                            <th class="px-6 py-4 text-center text-sm font-semibold text-gray-900">Topik</th>
+                            <th class="px-6 py-4 text-right text-sm font-semibold text-gray-900">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for course in courses %}
+                            <tr class="border-b hover:bg-gray-50 transition">
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center">
+                                        <i class="fas {{ course.icon_class or 'fa-book' }} text-emerald-600 mr-3"></i>
+                                        <div>
+                                            <p class="font-semibold text-gray-900">{{ course.title }}</p>
+                                            <p class="text-gray-600 text-sm">{{ course.grade_level }}</p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 text-gray-600">{{ course.instructor.username }}</td>
+                                <td class="px-6 py-4 text-center">
+                                    <span class="inline-block px-3 py-1 bg-blue-100 text-blue-800 font-semibold rounded-full">
+                                        {{ course.students.count() }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 text-center">
+                                    <span class="text-gray-900 font-semibold">{{ course.topics.count() }}</span>
+                                </td>
+                                <td class="px-6 py-4 text-right">
+                                    <div class="flex justify-end gap-2">
+                                        <a href="{{ url_for('admin.course_detail', course_id=course.id) }}" class="px-3 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </a>
+                                        <form method="POST" action="{{ url_for('admin.course_delete', course_id=course.id) }}" style="display:inline;"
+                                              onsubmit="return confirm('Yakin hapus kursus ini?');">
+                                            <button type="submit" class="px-3 py-2 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition">
+                                                <i class="fas fa-trash"></i> Hapus
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-16 text-center">
+                <i class="fas fa-inbox text-6xl text-gray-300 mb-4"></i>
+                <p class="text-gray-600 text-lg font-semibold mb-4">Belum ada kursus</p>
+                <a href="{{ url_for('admin.course_create') }}" class="inline-block bg-emerald-600 text-white px-6 py-3 rounded-lg hover:bg-emerald-700 transition">
+                    <i class="fas fa-plus mr-2"></i> Buat Kursus Baru
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

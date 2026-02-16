@@ -14,15 +14,27 @@ from app.models.lesson import Lesson
 def seed_data():
     """Populate database with sample data"""
     
-    # Clear existing data
+    # Clear existing data - perhatikan urutan foreign key constraints
     print("Clearing existing data...")
+    LessonProgress = __import__('app.models.progress', fromlist=['LessonProgress']).LessonProgress
+    
+    LessonProgress.query.delete()
     Lesson.query.delete()
     Topic.query.delete()
     Course.query.delete()
     User.query.delete()
+    
+    # Clear enrollments table menggunakan raw SQL karena bukan model
+    db.session.execute(db.text("DELETE FROM enrollments"))
     db.session.commit()
     
     print("Creating sample users...")
+    
+    # Create admin user
+    admin = User(username='admin', email='admin@cendrawasih.id', role='admin')
+    admin.set_password('Admin@123')
+    db.session.add(admin)
+    db.session.flush()
     
     # Create teacher user
     teacher = User(username='pengajar1', email='pengajar@cendrawasih.id', role='teacher')

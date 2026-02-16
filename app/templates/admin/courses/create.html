@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Buat Kursus - Cendrawasih{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div class="fade-in">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-4xl font-bold text-gray-900">Buat Kursus Baru</h1>
+            <p class="text-gray-600 mt-2">Buat kursus baru dan mulai mengajar</p>
+        </div>
+        
+        <!-- Form -->
+        <div class="bg-white rounded-lg shadow-md p-8">
+            <form method="POST" class="space-y-6">
+                {{ form.hidden_tag() }}
+                
+                <!-- Title -->
+                <div>
+                    <label for="title" class="block text-sm font-semibold text-gray-900 mb-2">Judul Kursus</label>
+                    {% if form.title.errors %}
+                        {{ form.title(class="w-full px-4 py-2 border-2 border-red-500 rounded-lg text-sm focus:outline-none") }}
+                        <div class="text-red-600 text-sm mt-2">
+                            {% for error in form.title.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        {{ form.title(class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500", placeholder="Contoh: Pengenalan Python untuk Pemula") }}
+                    {% endif %}
+                </div>
+                
+                <!-- Description -->
+                <div>
+                    <label for="description" class="block text-sm font-semibold text-gray-900 mb-2">Deskripsi</label>
+                    {% if form.description.errors %}
+                        {{ form.description(class="w-full px-4 py-2 border-2 border-red-500 rounded-lg text-sm focus:outline-none resize-none", rows="6") }}
+                        <div class="text-red-600 text-sm mt-2">
+                            {% for error in form.description.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        {{ form.description(class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none", rows="6", placeholder="Jelaskan isi kursus Anda...") }}
+                    {% endif %}
+                </div>
+                
+                <!-- Grade Level -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="grade_level" class="block text-sm font-semibold text-gray-900 mb-2">Tingkat Kesulitan</label>
+                        {{ form.grade_level(class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500", placeholder="Contoh: Beginner, Intermediate") }}
+                    </div>
+                    
+                    <!-- Icon Class -->
+                    <div>
+                        <label for="icon_class" class="block text-sm font-semibold text-gray-900 mb-2">Icon FontAwesome</label>
+                        {{ form.icon_class(class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500", placeholder="Contoh: fa-code, fa-globe") }}
+                    </div>
+                </div>
+                
+                <!-- Color Theme -->
+                <div>
+                    <label for="color_theme" class="block text-sm font-semibold text-gray-900 mb-2">Warna Tema</label>
+                    {{ form.color_theme(class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500") }}
+                </div>
+                
+                <!-- Buttons -->
+                <div class="flex gap-4 pt-4">
+                    {{ form.submit(class="flex-1 bg-emerald-600 text-white px-6 py-3 rounded-lg hover:bg-emerald-700 transition font-semibold") }}
+                    <a href="{{ url_for('admin.courses_list') }}" class="flex-1 text-center bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition font-semibold">
+                        Batal
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
