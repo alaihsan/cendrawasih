@@ -26,44 +26,91 @@
     <div class="grid lg:grid-cols-3 gap-12">
         <!-- Main Content -->
         <div class="lg:col-span-2">
-            <!-- Video Preview -->
-            {% if first_lesson and video_sources %}
+            <!-- Preview Lessons -->
+            {% if preview_lessons %}
                 <div class="mb-12" data-aos="fade-up">
                     <h2 class="text-2xl font-bold text-slate-900 mb-6">
-                        <i class="fas fa-play-circle text-emerald-600 mr-2"></i> Preview Video
+                        <i class="fas fa-play-circle text-emerald-600 mr-2"></i> Pelajaran Preview ({{ preview_lessons|length }})
                     </h2>
                     
-                    <!-- Quality Selector -->
-                    {% if video_sources %}
-                        <div class="absolute top-4 right-4 z-20 flex gap-2 flex-wrap justify-end">
-                            {% for source in video_sources %}
-                                <button class="quality-selector px-3 py-1 bg-gray-800 hover:bg-emerald-600 text-white text-xs font-semibold rounded transition" 
-                                        data-quality="{{ source.quality }}" 
-                                        data-src="{{ source.src }}" 
-                                        data-type="{{ source.type }}"
-                                        {% if loop.first %}data-default="true"{% endif %}>
-                                    {{ source.quality }}
-                                </button>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-                    
-                    <div id="videoContainer" class="relative bg-gray-900 rounded-lg overflow-hidden h-96 flex items-center justify-center group">
-                        <video id="previewVideo" playsinline controls class="w-full h-full">
-                            {% if video_sources %}
-                                {% set first_source = video_sources[0] %}
-                                <source src="{{ first_source.src }}" type="{{ first_source.type }}">
-                            {% else %}
-                                <source src="{{ first_lesson.content_url }}" type="video/mp4">
-                            {% endif %}
-                            Browser Anda tidak mendukung pemutaran video
-                        </video>
+                    <div class="space-y-6">
+                        {% for item in preview_lessons %}
+                            {% set lesson = item.lesson %}
+                            {% set topic = item.topic %}
+                            <div class="bg-white border border-slate-200 rounded-lg overflow-hidden hover:shadow-md transition">
+                                <!-- Lesson Header -->
+                                <div class="px-6 py-4 bg-gradient-to-r from-emerald-50 to-blue-50 border-b border-slate-200">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <h3 class="text-lg font-semibold text-slate-900">{{ lesson.title }}</h3>
+                                        <span class="text-xs bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full font-semibold">FREE PREVIEW</span>
+                                    </div>
+                                    <p class="text-sm text-slate-600">
+                                        <i class="fas fa-folder-open mr-2"></i> {{ topic.title }}
+                                    </p>
+                                </div>
+                                
+                                <!-- Lesson Content -->
+                                <div class="p-6">
+                                    {% if lesson.content_type == 'video' and lesson.compressed_video_versions %}
+                                        <!-- Video Preview -->
+                                        <div class="mb-4">
+                                            <!-- Quality Selector -->
+                                            <div class="mb-3 flex gap-2 flex-wrap">
+                                                {% set versions_map = lesson.compressed_video_versions %}
+                                                {% set quality_order = [('low', 'Low 480p'), ('medium', 'Medium 720p'), ('high', 'High 1080p'), ('webm', 'WebM')] %}
+                                                {% for key, label in quality_order %}
+                                                    {% if key in versions_map and versions_map[key] %}
+                                                        <button class="quality-selector px-3 py-1 bg-gray-800 hover:bg-emerald-600 text-white text-xs font-semibold rounded transition" 
+                                                                data-lesson-id="{{ lesson.id }}"
+                                                                data-quality="{{ label }}" 
+                                                                data-src="{{ versions_map[key] }}" 
+                                                                {% if key == 'medium' or (key == 'low' and 'medium' not in versions_map) %}data-default="true"{% endif %}>
+                                                            {{ label }}
+                                                        </button>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </div>
+                                            
+                                            <div class="relative bg-slate-900 rounded-lg overflow-hidden h-64 flex items-center justify-center">
+                                                <video id="video-lesson-{{ lesson.id }}" playsinline controls class="w-full h-full">
+                                                    {% set versions_map = lesson.compressed_video_versions %}
+                                                    {% if 'medium' in versions_map and versions_map['medium'] %}
+                                                        <source src="{{ versions_map['medium'] }}" type="video/mp4">
+                                                    {% elif 'low' in versions_map and versions_map['low'] %}
+                                                        <source src="{{ versions_map['low'] }}" type="video/mp4">
+                                                    {% endif %}
+                                                    Browser Anda tidak mendukung pemutaran video
+                                                </video>
+                                            </div>
+                                        </div>
+                                    {% elif lesson.content_type == 'text' %}
+                                        <div class="prose prose-sm max-w-none">
+                                            <div class="bg-slate-50 p-4 rounded-lg text-slate-700 max-h-48 overflow-y-auto">
+                                                {{ lesson.text_content|safe }}
+                                            </div>
+                                        </div>
+                                    {% elif lesson.content_type == 'pdf' %}
+                                        <div class="bg-red-50 border-2 border-red-200 p-4 rounded-lg text-center">
+                                            <i class="fas fa-file-pdf text-red-600 text-3xl mb-2"></i>
+                                            <p class="text-slate-700 text-sm">File PDF tersedia setelah mendaftar</p>
+                                            <p class="text-slate-600 text-xs mt-2">{{ lesson.content_url|basename }}</p>
+                                        </div>
+                                    {% elif lesson.content_type == 'video_url' %}
+                                        <div class="bg-purple-50 border-2 border-purple-200 p-4 rounded-lg text-center">
+                                            <i class="fas fa-video text-purple-600 text-3xl mb-2"></i>
+                                            <p class="text-slate-700 text-sm">Video embedded tersedia setelah mendaftar</p>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
                     </div>
                     
-                    <div class="mt-4 px-4 py-3 bg-blue-50 border-l-4 border-blue-600 rounded">
+                    <div class="mt-6 px-4 py-3 bg-blue-50 border-l-4 border-blue-600 rounded">
                         <p class="text-blue-900 text-sm">
                             <i class="fas fa-info-circle mr-2"></i>
-                            Ini adalah preview gratis dari kursus. <strong>Daftar sekarang</strong> untuk akses penuh ke semua {{ total_lessons }} lessons!
+                            Ini adalah preview gratis dari <strong>{{ preview_lessons|length }} pelajaran pertama</strong> dari {{ total_lessons }} total lessons. 
+                            <strong>Daftar sekarang</strong> untuk akses penuh ke seluruh kursus!
                         </p>
                     </div>
                 </div>
@@ -161,6 +208,16 @@
                     <p class="text-sm text-slate-600">Akses penuh selamanya</p>
                 </div>
                 
+                <!-- Trial Available Badge -->
+                {% if course.is_trial_enabled %}
+                    <div class="bg-amber-50 border-2 border-amber-200 rounded-lg p-3 text-center">
+                        <p class="text-amber-900 font-semibold text-sm mb-1">
+                            <i class="fas fa-star text-amber-500"></i> Coba Gratis
+                        </p>
+                        <p class="text-amber-800 text-xs">{{ course.trial_days }} hari akses penuh</p>
+                    </div>
+                {% endif %}
+                
                 <!-- Stats -->
                 <div class="border-y border-slate-200 py-6 space-y-4">
                     <div class="flex items-center justify-between">
@@ -181,26 +238,57 @@
                     </div>
                 </div>
                 
-                <!-- Enroll Button -->
-                {% if current_user.is_authenticated and is_enrolled %}
-                    <a href="{{ url_for('courses.detail', course_id=course.id) }}" class="w-full block text-center py-3 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 transition btn-hover-lift">
-                        <i class="fas fa-book-open mr-2"></i> Buka Kursus
-                    </a>
-                    <p class="text-xs text-slate-600 text-center">Anda sudah terdaftar di kursus ini</p>
-                {% elif current_user.is_authenticated %}
-                    <form method="POST" action="{{ url_for('courses.enroll', course_id=course.id) }}">
-                        <button type="submit" class="w-full py-3 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 transition btn-hover-lift">
-                            <i class="fas fa-plus-circle mr-2"></i> Daftar Gratis
-                        </button>
-                    </form>
+                <!-- Enroll Buttons -->
+                {% if current_user.is_authenticated %}
+                    {% if is_enrolled %}
+                        <a href="{{ url_for('courses.detail', course_id=course.id) }}" class="w-full block text-center py-3 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 transition btn-hover-lift">
+                            <i class="fas fa-book-open mr-2"></i> Buka Kursus
+                        </a>
+                        <p class="text-xs text-slate-600 text-center">Anda sudah terdaftar di kursus ini</p>
+                    {% elif is_trial_active %}
+                        <div class="bg-green-50 border-2 border-green-200 rounded-lg p-3 text-center mb-3">
+                            <p class="text-green-800 font-semibold text-sm">
+                                <i class="fas fa-check-circle"></i> Trial Aktif
+                            </p>
+                            {% if trial_expiry %}
+                                <p class="text-green-700 text-xs mt-1">Berakhir: {{ trial_expiry.strftime('%d %b %Y') }}</p>
+                            {% endif %}
+                        </div>
+                        <a href="{{ url_for('courses.detail', course_id=course.id) }}" class="w-full block text-center py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition mb-3">
+                            <i class="fas fa-play mr-2"></i> Mulai Belajar
+                        </a>
+                        <form method="POST" action="{{ url_for('courses.cancel_trial', course_id=course.id) }}" class="mb-3">
+                            <button type="submit" class="w-full py-2 text-red-600 border-2 border-red-200 rounded-lg hover:bg-red-50 transition font-semibold text-sm"
+                                    onclick="return confirm('Yakin ingin membatalkan trial?')">
+                                <i class="fas fa-times mr-2"></i> Batalkan Trial
+                            </button>
+                        </form>
+                    {% else %}
+                        {% if course.is_trial_enabled %}
+                            <form method="POST" action="{{ url_for('courses.start_trial', course_id=course.id) }}" class="mb-3">
+                                <button type="submit" class="w-full py-3 bg-amber-500 text-white font-bold rounded-lg hover:bg-amber-600 transition btn-hover-lift">
+                                    <i class="fas fa-rocket mr-2"></i> Coba {{ course.trial_days }} Hari
+                                </button>
+                            </form>
+                        {% endif %}
+                        
+                        <form method="POST" action="{{ url_for('courses.enroll', course_id=course.id) }}" class="mb-3">
+                            <button type="submit" class="w-full py-3 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 transition btn-hover-lift">
+                                <i class="fas fa-plus-circle mr-2"></i> Daftar Sekarang
+                            </button>
+                        </form>
+                    {% endif %}
                 {% else %}
-                    <a href="{{ url_for('auth.login') }}" class="w-full block text-center py-3 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 transition btn-hover-lift">
-                        <i class="fas fa-sign-in-alt mr-2"></i> Login & Daftar
+                    <a href="{{ url_for('auth.login', next=url_for('courses.course_preview', course_id=course.id)) }}" class="w-full block text-center py-3 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 transition btn-hover-lift mb-3">
+                        <i class="fas fa-sign-in-alt mr-2"></i> Login untuk Coba
+                    </a>
+                    <a href="{{ url_for('auth.register', next=url_for('courses.course_preview', course_id=course.id)) }}" class="w-full block text-center py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition btn-hover-lift">
+                        <i class="fas fa-user-plus mr-2"></i> Daftar Akun
                     </a>
                 {% endif %}
                 
                 <!-- Features -->
-                <div class="pt-4 space-y-3">
+                <div class="pt-4 space-y-3 border-t border-slate-200">
                     <div class="flex items-center gap-3">
                         <i class="fas fa-infinity text-emerald-600"></i>
                         <span class="text-sm text-slate-700">Akses seumur hidup</span>
@@ -228,79 +316,47 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const videoElement = document.getElementById('previewVideo');
-    const videoContainer = document.getElementById('videoContainer');
     const qualityButtons = document.querySelectorAll('.quality-selector');
     
-    if (!videoElement || qualityButtons.length === 0) {
+    if (qualityButtons.length === 0) {
         return;
     }
     
-    // Initialize Plyr player
-    const player = new Plyr(videoElement, {
-        controls: [
-            'play-large',
-            'play',
-            'progress',
-            'current-time',
-            'mute',
-            'volume',
-            'captions',
-            'settings',
-            'pip',
-            'airplay',
-            'fullscreen'
-        ],
-        settings: ['captions', 'quality', 'speed', 'loop'],
-        quality: {
-            default: 720,
-            options: [480, 720, 1080]
-        }
-    });
-    
-    // Get stored quality preference
-    const courseId = `{{ course.id }}`;
-    const storageKey = `video_quality_preview_${courseId}`;
-    const savedQuality = localStorage.getItem(storageKey);
-    
-    let defaultButton = null;
-    let savedButton = null;
-    
     qualityButtons.forEach(button => {
-        if (button.dataset.default === 'true') {
-            defaultButton = button;
-        }
-        if (button.textContent.trim() === (savedQuality || '')) {
-            savedButton = button;
-        }
-        
         button.addEventListener('click', function() {
             changeQuality(this);
         });
     });
     
-    const initialButton = savedButton || defaultButton;
-    if (initialButton) {
-        changeQuality(initialButton);
-    }
-    
     function changeQuality(button) {
+        const lessonId = button.dataset.lessonId;
+        const videoElement = document.getElementById(`video-lesson-${lessonId}`);
+        
+        if (!videoElement) {
+            return;
+        }
+        
         const src = button.dataset.src;
-        const type = button.dataset.type;
         const quality = button.textContent.trim();
         
-        qualityButtons.forEach(btn => {
+        // Remove active state from all buttons for this lesson
+        document.querySelectorAll(`.quality-selector[data-lesson-id="${lessonId}"]`).forEach(btn => {
             btn.classList.remove('bg-emerald-600');
             btn.classList.add('bg-gray-800');
         });
         
+        // Add active state to clicked button
         button.classList.remove('bg-gray-800');
         button.classList.add('bg-emerald-600');
         
+        // Save current time
         const currentTime = videoElement.currentTime;
         
-        videoElement.querySelector('source').src = src;
-        videoElement.querySelector('source').type = type;
+        // Update source and reload
+        const sourceElement = videoElement.querySelector('source');
+        if (sourceElement) {
+            sourceElement.src = src;
+        }
         
         videoElement.load();
         videoElement.currentTime = currentTime;
@@ -308,8 +364,37 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Playback failed:', err);
         });
         
+        // Save quality preference
+        const storageKey = `video_quality_preview_lesson_${lessonId}`;
         localStorage.setItem(storageKey, quality);
     }
+    
+    // Initialize with saved quality for each lesson if available
+    document.querySelectorAll('[id^="video-lesson-"]').forEach(videoElement => {
+        const lessonId = videoElement.id.replace('video-lesson-', '');
+        const storageKey = `video_quality_preview_lesson_${lessonId}`;
+        const savedQuality = localStorage.getItem(storageKey);
+        
+        const buttons = document.querySelectorAll(`.quality-selector[data-lesson-id="${lessonId}"]`);
+        let defaultButton = null;
+        let savedButton = null;
+        
+        buttons.forEach(button => {
+            if (button.dataset.default === 'true') {
+                defaultButton = button;
+            }
+            if (button.textContent.trim() === (savedQuality || '')) {
+                savedButton = button;
+            }
+        });
+        
+        const initialButton = savedButton || defaultButton;
+        if (initialButton) {
+            // Don't call changeQuality as video is already initialized with default
+            initialButton.classList.remove('bg-gray-800');
+            initialButton.classList.add('bg-emerald-600');
+        }
+    });
 });
 </script>
 {% endblock %}

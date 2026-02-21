@@ -2,6 +2,8 @@ from app import db
 from app.models.course import Course, Topic
 from app.models.lesson import Lesson
 from app.models.user import enrollments
+from app.models.progress import LessonProgress
+from datetime import datetime, timedelta
 
 class CourseService:
     """Service layer for course management"""
@@ -111,6 +113,121 @@ class CourseService:
                 Course.students.any(id=user_id)
             ).first() is not None
         return False
+
+    # Trial methods
+    @staticmethod
+    def start_trial(user_id, course_id):
+        """Start a trial period for a user in a course"""
+        from app.models.user import User
+        
+        user = User.query.get(user_id)
+        course = Course.query.get(course_id)
+        
+        if not user or not course:
+            return False, "User atau Course tidak ditemukan"
+        
+        if not course.is_trial_enabled:
+            return False, "Trial tidak tersedia untuk kursus ini"
+        
+        # Check if already enrolled
+        if course in user.enrolled_courses:
+            return False, "Anda sudah mendaftar kursus ini"
+        
+        try:
+            # Enroll user to course with trial data
+            user.enrolled_courses.append(course)
+            
+            # Create progress record with trial dates
+            trial_started = datetime.utcnow()
+            trial_expires = trial_started + timedelta(days=course.trial_days)
+            
+            # Get first lesson for trial tracking
+            first_lesson = Lesson.query.join(Topic).filter(
+                Topic.course_id == course_id
+            ).order_by(Topic.order, Lesson.order).first()
+            
+            if first_lesson:
+                progress = LessonProgress(
+                    user_id=user_id,
+                    lesson_id=first_lesson.id,
+                    trial_started_at=trial_started,
+                    trial_expires_at=trial_expires,
+                    trial_cancelled=False
+                )
+                db.session.add(progress)
+            
+            db.session.commit()
+            return True, f"Trial berhasil dimulai! Berlaku selama {course.trial_days} hari"
+        except Exception as e:
+            db.session.rollback()
+            return False, f"Error: {str(e)}"
+
+    @staticmethod
+    def cancel_trial(user_id, course_id):
+        """Cancel trial and remove enrollment"""
+        from app.models.user import User
+        
+        user = User.query.get(user_id)
+        course = Course.query.get(course_id)
+        
+        if not user or not course:
+            return False, "User atau Course tidak ditemukan"
+        
+        try:
+            # Mark trial as cancelled
+            progress_records = LessonProgress.query.join(Lesson).join(Topic).filter(
+                Topic.course_id == course_id,
+                LessonProgress.user_id == user_id,
+                LessonProgress.trial_started_at.isnot(None)
+            ).all()
+            
+            for progress in progress_records:
+                progress.trial_cancelled = True
+            
+            # Remove enrollment
+            user.enrolled_courses.remove(course)
+            db.session.commit()
+            return True, "Trial berhasil dibatalkan"
+        except Exception as e:
+            db.session.rollback()
+            return False, f"Error: {str(e)}"
+
+    @staticmethod
+    def is_trial_active(user_id, course_id):
+        """Check if user has an active trial for a course"""
+        progress = LessonProgress.query.join(Lesson).join(Topic).filter(
+            Topic.course_id == course_id,
+            LessonProgress.user_id == user_id,
+            LessonProgress.trial_started_at.isnot(None),
+            LessonProgress.trial_cancelled == False,
+            LessonProgress.trial_expires_at > datetime.utcnow()
+        ).first()
+        
+        return progress is not None
+
+    @staticmethod
+    def has_trial_access(user_id, course_id):
+        """Check if user has trial OR full enrollment access"""
+        # Check full enrollment
+        if CourseService.is_student_enrolled(user_id, course_id):
+            return True
+        
+        # Check active trial
+        return CourseService.is_trial_active(user_id, course_id)
+
+    @staticmethod
+    def get_trial_expiry(user_id, course_id):
+        """Get trial expiry datetime for a user in a course"""
+        progress = LessonProgress.query.join(Lesson).join(Topic).filter(
+            Topic.course_id == course_id,
+            LessonProgress.user_id == user_id,
+            LessonProgress.trial_started_at.isnot(None),
+            LessonProgress.trial_cancelled == False
+        ).first()
+        
+        if progress:
+            return progress.trial_expires_at
+        return None
 
     @staticmethod
     def update_course(course_id, **kwargs):

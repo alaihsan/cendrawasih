@@ -1,5 +1,5 @@
 from app import db
-from datetime import datetime
+from datetime import datetime, timedelta
 
 class Course(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -9,6 +9,11 @@ class Course(db.Model):
     icon_class = db.Column(db.String(50)) # Untuk FontAwesome
     color_theme = db.Column(db.String(50)) # Untuk Tailwind
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Trial Fields
+    is_trial_enabled = db.Column(db.Boolean, default=True) # Apakah trial tersedia
+    trial_days = db.Column(db.Integer, default=7) # Durasi trial dalam hari
+    can_cancel_anytime = db.Column(db.Boolean, default=True) # Bisa batalkan trial kapan saja
     
     instructor_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     

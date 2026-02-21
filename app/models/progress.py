@@ -1,5 +1,5 @@
 from app import db
-from datetime import datetime
+from datetime import datetime, timedelta
 
 class LessonProgress(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -11,6 +11,12 @@ class LessonProgress(db.Model):
     
     # Opsional: Jika ingin menyimpan posisi video terakhir ditonton (detik ke-berapa)
     video_timestamp = db.Column(db.Integer, default=0) 
+    
+    # Trial Fields
+    trial_started_at = db.Column(db.DateTime, nullable=True) # Kapan trial dimulai
+    trial_expires_at = db.Column(db.DateTime, nullable=True) # Kapan trial berakhir
+    trial_cancelled = db.Column(db.Boolean, default=False) # Trial sudah dibatalkan
+ 
 
     def mark_complete(self):
         self.is_completed = True
