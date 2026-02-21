@@ -7,7 +7,7 @@ load_dotenv(os.path.join(basedir, '.env'))
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'kunci-rahasia-cendrawasih-dev'
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
-        'mysql+pymysql://root:B1smillah#1@localhost/db_cendrawasih'
+        'mysql+pymysql://root:passwd@localhost/db_cendrawasih'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # Konfigurasi Upload (untuk materi/video nanti)
