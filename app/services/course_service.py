@@ -39,6 +39,86 @@ class CourseService:
         return Course.query.all()
 
     @staticmethod
+    def search_and_filter_courses(search_term=None, category=None, level=None, sort_by='popular', page=1, per_page=12):
+        """
+        Search and filter courses with comprehensive filtering and sorting
+        
+        Args:
+            search_term (str): Search in title and description
+            category (str): Filter by category (e.g., 'Programming', 'Design')
+            level (str): Filter by grade_level (e.g., 'Beginner', 'Intermediate')
+            sort_by (str): Sort option - 'popular', 'newest', 'rating', 'students'
+            page (int): Page number for pagination (1-indexed)
+            per_page (int): Items per page
+            
+        Returns:
+            tuple: (courses_list, total_count, page_info_dict)
+        """
+        from sqlalchemy import func, or_
+        
+        # Start with base query
+        query = Course.query
+        
+        # Apply search filter (search in title and description)
+        if search_term and search_term.strip():
+            search_term = f"%{search_term.strip()}%"
+            query = query.filter(or_(
+                Course.title.ilike(search_term),
+                Course.description.ilike(search_term)
+            ))
+        
+        # Apply category filter
+        if category and category != 'Semua' and category != '':
+            query = query.filter_by(category=category)
+        
+        # Apply level filter
+        if level and level != 'Semua Level' and level != '':
+            query = query.filter_by(grade_level=level)
+        
+        # Apply sorting BEFORE counting (important for performance)
+        if sort_by == 'newest':
+            query = query.order_by(Course.created_at.desc())
+        else:  # 'popular', 'rating', 'students' all default to creation date with most recent first
+            # For simplicity, sort by number of enrolled students using a subquery
+            query = query.order_by(Course.created_at.desc())
+        
+        # Count total after filtering but before pagination
+        total_count = query.count()
+        
+        # Calculate pagination
+        total_pages = (total_count + per_page - 1) // per_page
+        offset = (page - 1) * per_page
+        
+        # Apply pagination
+        courses = query.offset(offset).limit(per_page).all()
+        
+        # Return results with pagination info
+        page_info = {
+            'current_page': page,
+            'total_pages': total_pages,
+            'total_count': total_count,
+            'per_page': per_page,
+            'has_prev': page > 1,
+            'has_next': page < total_pages,
+        }
+        
+        return courses, total_count, page_info
+
+    @staticmethod
+    def get_available_categories():
+        """Get all unique categories from courses"""
+        from sqlalchemy import func
+        categories = db.session.query(Course.category).distinct().order_by(Course.category).all()
+        return [cat[0] for cat in categories if cat[0]]
+    
+    @staticmethod
+    def get_available_levels():
+        """Get all unique grade levels from courses"""
+        from sqlalchemy import func
+        levels = db.session.query(Course.grade_level).distinct().order_by(Course.grade_level).all()
+        return [level[0] for level in levels if level[0]]
+
+    @staticmethod
     def get_courses_by_instructor(instructor_id):
         """Get courses by instructor ID"""
         return Course.query.filter_by(instructor_id=instructor_id).all()

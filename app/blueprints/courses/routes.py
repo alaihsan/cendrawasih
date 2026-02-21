@@ -7,15 +7,50 @@ from datetime import datetime, timedelta
 
 @bp.route('/list')
 def list():
-    """List all courses"""
-    courses = CourseService.get_all_courses()
-    user_enrolled = {}
+    """List all courses with filtering, searching, and sorting"""
+    # Get query parameters
+    search_term = request.args.get('search', '')
+    category = request.args.get('category', '')
+    level = request.args.get('level', '')
+    sort_by = request.args.get('sort', 'popular')
+    page = request.args.get('page', 1, type=int)
+    per_page = 12
     
+    # Validate pagination
+    if page < 1:
+        page = 1
+    
+    # Get filtered and paginated courses
+    courses, total_count, page_info = CourseService.search_and_filter_courses(
+        search_term=search_term,
+        category=category,
+        level=level,
+        sort_by=sort_by,
+        page=page,
+        per_page=per_page
+    )
+    
+    # Get available categories and levels for filter UI
+    available_categories = CourseService.get_available_categories()
+    available_levels = CourseService.get_available_levels()
+    
+    # Get enrollment status for authenticated users
+    user_enrolled = {}
     if current_user.is_authenticated:
         for course in courses:
             user_enrolled[course.id] = CourseService.is_student_enrolled(current_user.id, course.id)
     
-    return render_template('courses/list.html', courses=courses, user_enrolled=user_enrolled)
+    return render_template('courses/list.html', 
+                         courses=courses, 
+                         user_enrolled=user_enrolled,
+                         total_count=total_count,
+                         page_info=page_info,
+                         search_term=search_term,
+                         selected_category=category,
+                         selected_level=level,
+                         selected_sort=sort_by,
+                         available_categories=available_categories,
+                         available_levels=available_levels)
 
 @bp.route('/<int:course_id>')
 def detail(course_id):
@@ -184,9 +219,19 @@ def course_preview(course_id):
     
     # Get all lessons to show preview (first 2-3 lessons or 20-30% of course)
     all_topics = course.topics.order_by('order').all()
+    
+    # Materialize topics with their lessons as lists for template usage
+    topics_with_lessons = []
     all_lessons = []
     for topic in all_topics:
-        for lesson in topic.lessons.order_by('order'):
+        lessons_list = topic.lessons.order_by('order').all()
+        topics_with_lessons.append({
+            'id': topic.id,
+            'title': topic.title,
+            'order': topic.order,
+            'lessons': lessons_list
+        })
+        for lesson in lessons_list:
             all_lessons.append({'lesson': lesson, 'topic': topic})
     
     # Show first 3 lessons or 30% of course, whichever is greater
@@ -210,6 +255,7 @@ def course_preview(course_id):
     
     return render_template('courses/preview.html', 
                          course=course,
+                         topics_with_lessons=topics_with_lessons,
                          preview_lessons=preview_lessons,
                          total_lessons=total_lessons,
                          total_topics=total_topics,

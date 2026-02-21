@@ -22,59 +22,77 @@
             </button>
             
             <div id="filter-content" class="hidden lg:block bg-white rounded-lg shadow-md p-6 sticky top-20 space-y-6">
-                
-                <!-- Search -->
-                <div>
-                    <label class="block text-sm font-semibold text-slate-900 mb-3">Cari Kursus</label>
-                    <div class="relative">
-                        <input type="text" id="search-input" placeholder="Ketik nama kursus..." 
-                               class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
-                        <i class="fas fa-search absolute right-3 top-3 text-slate-400"></i>
+                <form id="filter-form" method="GET" action="{{ url_for('courses.list') }}" class="space-y-6">
+                    
+                    <!-- Search -->
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-900 mb-3">Cari Kursus</label>
+                        <div class="relative">
+                            <input type="text" name="search" id="search-input" placeholder="Ketik nama kursus..." 
+                                   value="{{ search_term }}"
+                                   class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                            <i class="fas fa-search absolute right-3 top-3 text-slate-400"></i>
+                        </div>
                     </div>
-                </div>
-                
-                <!-- Category Filter -->
-                <div class="pb-6 border-b border-slate-200">
-                    <label class="block text-sm font-semibold text-slate-900 mb-3">Level</label>
-                    <div class="space-y-2">
-                        {% for level in ['Semua Level', 'Beginner', 'Intermediate', 'Advanced'] %}
+                    
+                    <!-- Level Filter -->
+                    <div class="pb-6 border-b border-slate-200">
+                        <label class="block text-sm font-semibold text-slate-900 mb-3">Level</label>
+                        <div class="space-y-2">
                             <label class="flex items-center gap-3 cursor-pointer group">
-                                <input type="checkbox" class="level-filter rounded w-4 h-4 text-emerald-600" 
-                                       value="{{ level }}" {% if level == 'Semua Level' %}checked{% endif %}>
-                                <span class="text-slate-700 group-hover:text-emerald-600 transition">{{ level }}</span>
+                                <input type="checkbox" name="level" value="" class="level-filter rounded w-4 h-4 text-emerald-600"
+                                       {% if selected_level == '' %}checked{% endif %}>
+                                <span class="text-slate-700 group-hover:text-emerald-600 transition">Semua Level</span>
                             </label>
-                        {% endfor %}
+                            {% for lv in available_levels %}
+                                <label class="flex items-center gap-3 cursor-pointer group">
+                                    <input type="checkbox" name="level" value="{{ lv }}" class="level-filter rounded w-4 h-4 text-emerald-600"
+                                           {% if selected_level == lv %}checked{% endif %}>
+                                    <span class="text-slate-700 group-hover:text-emerald-600 transition">{{ lv }}</span>
+                                </label>
+                            {% endfor %}
+                        </div>
                     </div>
-                </div>
-                
-                <!-- Kategori Filter -->
-                <div class="pb-6 border-b border-slate-200">
-                    <label class="block text-sm font-semibold text-slate-900 mb-3">Kategori</label>
-                    <div class="space-y-2">
-                        {% for category in ['Semua', 'Programming', 'Design', 'Business', 'Data Science'] %}
+                    
+                    <!-- Category Filter -->
+                    <div class="pb-6 border-b border-slate-200">
+                        <label class="block text-sm font-semibold text-slate-900 mb-3">Kategori</label>
+                        <div class="space-y-2">
                             <label class="flex items-center gap-3 cursor-pointer group">
-                                <input type="checkbox" class="category-filter rounded w-4 h-4 text-emerald-600">
-                                <span class="text-slate-700 group-hover:text-emerald-600 transition">{{ category }}</span>
+                                <input type="checkbox" name="category" value="" class="category-filter rounded w-4 h-4 text-emerald-600"
+                                       {% if selected_category == '' %}checked{% endif %}>
+                                <span class="text-slate-700 group-hover:text-emerald-600 transition">Semua Kategori</span>
                             </label>
-                        {% endfor %}
+                            {% for cat in available_categories %}
+                                <label class="flex items-center gap-3 cursor-pointer group">
+                                    <input type="checkbox" name="category" value="{{ cat }}" class="category-filter rounded w-4 h-4 text-emerald-600"
+                                           {% if selected_category == cat %}checked{% endif %}>
+                                    <span class="text-slate-700 group-hover:text-emerald-600 transition">{{ cat }}</span>
+                                </label>
+                            {% endfor %}
+                        </div>
                     </div>
-                </div>
-                
-                <!-- Sort -->
-                <div>
-                    <label class="block text-sm font-semibold text-slate-900 mb-3">Sort</label>
-                    <select id="sort-select" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
-                        <option value="popular">Paling Populer</option>
-                        <option value="newest">Terbaru</option>
-                        <option value="rating">Rating Tertinggi</option>
-                        <option value="students">Paling Banyak Siswa</option>
-                    </select>
-                </div>
-                
-                <!-- Clear Filters -->
-                <button onclick="clearFilters()" class="w-full px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition text-sm font-semibold">
-                    <i class="fas fa-redo mr-2"></i> Reset Filter
-                </button>
+                    
+                    <!-- Sort -->
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-900 mb-3">Urutkan</label>
+                        <select name="sort" id="sort-select" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
+                                onchange="document.getElementById('filter-form').submit()">
+                            <option value="popular" {% if selected_sort == 'popular' %}selected{% endif %}>Paling Populer</option>
+                            <option value="newest" {% if selected_sort == 'newest' %}selected{% endif %}>Terbaru</option>
+                            <option value="rating" {% if selected_sort == 'rating' %}selected{% endif %}>Rating Tertinggi</option>
+                            <option value="students" {% if selected_sort == 'students' %}selected{% endif %}>Paling Banyak Siswa</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Hidden page input -->
+                    <input type="hidden" name="page" id="page-input" value="1">
+                    
+                    <!-- Clear Filters -->
+                    <button type="button" onclick="clearFilters()" class="w-full px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition text-sm font-semibold">
+                        <i class="fas fa-redo mr-2"></i> Reset Filter
+                    </button>
+                </form>
             </div>
         </aside>
         
@@ -84,12 +102,10 @@
             <div class="flex justify-between items-center mb-8 pb-4 border-b border-slate-200">
                 <div>
                     <p class="text-sm text-slate-600">
-                        Menampilkan <span id="result-count" class="font-semibold text-slate-900">{{ courses|length }}</span> dari <span class="font-semibold text-slate-900">{{ courses|length }}</span> kursus
+                        Menampilkan <span id="result-count" class="font-semibold text-slate-900">{{ courses|length }}</span> dari <span class="font-semibold text-slate-900">{{ total_count }}</span> kursus
+                        {% if search_term or selected_category or selected_level %}<span class="ml-2 text-xs text-emerald-600 font-semibold">(Filtered)</span>{% endif %}
                     </p>
                 </div>
-                <button id="mobile-sort" class="lg:hidden px-4 py-2 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 transition text-sm">
-                    <i class="fas fa-arrow-up-z-a mr-2"></i> Sort
-                </button>
             </div>
             
             <!-- Courses Grid -->
@@ -111,7 +127,7 @@
                             <div class="p-5">
                                 <!-- Category Badge -->
                                 <span class="inline-block px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-xs font-semibold mb-3">
-                                    {{ course.grade_level or 'Beginner' }}
+                                    {{ course.category or 'General' }} • {{ course.grade_level or 'Semua Level' }}
                                 </span>
                                 
                                 <!-- Title -->
@@ -164,12 +180,55 @@
                 {% endif %}
             </div>
             
-            <!-- Load More / Pagination -->
-            {% if courses|length > 9 %}
-                <div class="mt-12 text-center">
-                    <button class="btn-primary btn-hover-lift px-8 py-3 rounded-lg font-semibold">
-                        <i class="fas fa-chevron-down mr-2"></i> Muat Lebih Banyak
-                    </button>
+            <!-- Pagination -->
+            {% if page_info.total_pages > 1 %}
+                <div class="mt-12 flex justify-center items-center gap-2 md:gap-4">
+                    <!-- Previous Button -->
+                    {% if page_info.has_prev %}
+                        <a href="{{ url_for('courses.list', search=search_term, category=selected_category, level=selected_level, sort=selected_sort, page=page_info.current_page-1) }}" 
+                           class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition font-semibold text-sm">
+                            <i class="fas fa-chevron-left mr-2"></i> Sebelumnya
+                        </a>
+                    {% endif %}
+                    
+                    <!-- Page Numbers -->
+                    <div class="flex gap-1 md:gap-2">
+                        {% set start_page = [1, page_info.current_page - 2]|max %}
+                        {% set end_page = [page_info.total_pages, page_info.current_page + 2]|min %}
+                        
+                        {% if start_page > 1 %}
+                            <a href="{{ url_for('courses.list', search=search_term, category=selected_category, level=selected_level, sort=selected_sort, page=1) }}" 
+                               class="px-3 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition font-semibold text-sm">1</a>
+                            {% if start_page > 2 %}
+                                <span class="px-3 py-2 text-slate-600">...</span>
+                            {% endif %}
+                        {% endif %}
+                        
+                        {% for page_num in range(start_page, end_page + 1) %}
+                            {% if page_num == page_info.current_page %}
+                                <span class="px-3 py-2 bg-emerald-600 text-white rounded-lg font-bold text-sm">{{ page_num }}</span>
+                            {% else %}
+                                <a href="{{ url_for('courses.list', search=search_term, category=selected_category, level=selected_level, sort=selected_sort, page=page_num) }}" 
+                                   class="px-3 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition font-semibold text-sm">{{ page_num }}</a>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if end_page < page_info.total_pages %}
+                            {% if end_page < page_info.total_pages - 1 %}
+                                <span class="px-3 py-2 text-slate-600">...</span>
+                            {% endif %}
+                            <a href="{{ url_for('courses.list', search=search_term, category=selected_category, level=selected_level, sort=selected_sort, page=page_info.total_pages) }}" 
+                               class="px-3 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition font-semibold text-sm">{{ page_info.total_pages }}</a>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Next Button -->
+                    {% if page_info.has_next %}
+                        <a href="{{ url_for('courses.list', search=search_term, category=selected_category, level=selected_level, sort=selected_sort, page=page_info.current_page+1) }}" 
+                           class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition font-semibold text-sm">
+                            Selanjutnya <i class="fas fa-chevron-right ml-2"></i>
+                        </a>
+                    {% endif %}
                 </div>
             {% endif %}
         </div>
@@ -204,62 +263,58 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Filter functionality
+    // Filter form submission
+    const filterForm = document.getElementById('filter-form');
     const searchInput = document.getElementById('search-input');
     const levelFilters = document.querySelectorAll('.level-filter');
     const categoryFilters = document.querySelectorAll('.category-filter');
-    const sortSelect = document.getElementById('sort-select');
     
-    function applyFilters() {
-        const searchTerm = searchInput.value.toLowerCase();
-        const coursesGrid = document.getElementById('courses-grid');
-        const courses = coursesGrid.querySelectorAll('.course-card');
-        let visibleCount = 0;
-        
-        courses.forEach(course => {
-            const title = course.querySelector('h3').textContent.toLowerCase();
-            const matchesSearch = title.includes(searchTerm);
-            
-            if (matchesSearch && searchTerm === '') {
-                course.style.display = 'block';
-                course.classList.add('fade-in');
-                visibleCount++;
-            } else if (matchesSearch && searchTerm !== '') {
-                course.style.display = 'block';
-                course.classList.add('fade-in');
-                visibleCount++;
-            } else {
-                course.style.display = 'none';
-            }
-        });
-        
-        document.getElementById('result-count').textContent = visibleCount;
-    }
-    
-    // Event listeners
+    // Handle filter changes
     if (searchInput) {
-        searchInput.addEventListener('input', applyFilters);
+        // Debounce search input
+        let searchTimeout;
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                document.getElementById('page-input').value = '1';
+                filterForm.submit();
+            }, 500);
+        });
     }
     
     levelFilters.forEach(filter => {
-        filter.addEventListener('change', applyFilters);
+        filter.addEventListener('change', function() {
+            // Only one level checkbox should be checked
+            levelFilters.forEach(f => {
+                if (f !== this) f.checked = false;
+            });
+            document.getElementById('page-input').value = '1';
+            filterForm.submit();
+        });
     });
     
     categoryFilters.forEach(filter => {
-        filter.addEventListener('change', applyFilters);
+        filter.addEventListener('change', function() {
+            // Only one category checkbox should be checked
+            categoryFilters.forEach(f => {
+                if (f !== this) f.checked = false;
+            });
+            document.getElementById('page-input').value = '1';
+            filterForm.submit();
+        });
     });
 });
 
 function clearFilters() {
+    const filterForm = document.getElementById('filter-form');
     document.getElementById('search-input').value = '';
     document.querySelectorAll('.level-filter').forEach(f => f.checked = false);
-    document.querySelector('.level-filter').checked = true;
+    document.querySelectorAll('.level-filter')[0].checked = true;
     document.querySelectorAll('.category-filter').forEach(f => f.checked = false);
+    document.querySelectorAll('.category-filter')[0].checked = true;
     document.getElementById('sort-select').value = 'popular';
-    
-    // Reapply filters
-    const event = new Event('input');
-    document.getElementById('search-input').dispatchEvent(event);
+    document.getElementById('page-input').value = '1';
+    filterForm.submit();
 }
 </script>
 {% endblock %}

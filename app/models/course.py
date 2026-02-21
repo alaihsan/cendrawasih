@@ -5,6 +5,7 @@ class Course(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(140))
     description = db.Column(db.Text)
+    category = db.Column(db.String(50), default='General') # Kategori: Programming, Design, Business, Data Science, Mathematics, Languages
     grade_level = db.Column(db.String(50)) # Misal: "Kelas 7-9 SMP"
     icon_class = db.Column(db.String(50)) # Untuk FontAwesome
     color_theme = db.Column(db.String(50)) # Untuk Tailwind

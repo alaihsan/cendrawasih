@@ -18,7 +18,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-gray-600 text-sm font-semibold">Kursus Aktif</p>
-                        <p class="text-4xl font-bold text-emerald-600 mt-2">0</p>
+                        <p class="text-4xl font-bold text-emerald-600 mt-2">{{ total_enrolled }}</p>
                     </div>
                     <i class="fas fa-book text-4xl text-emerald-200"></i>
                 </div>
@@ -28,7 +28,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-gray-600 text-sm font-semibold">Progress Rata-rata</p>
-                        <p class="text-4xl font-bold text-amber-600 mt-2">0%</p>
+                        <p class="text-4xl font-bold text-amber-600 mt-2">{{ avg_progress }}%</p>
                     </div>
                     <i class="fas fa-chart-pie text-4xl text-amber-200"></i>
                 </div>
@@ -37,8 +37,8 @@
             <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow-md p-8 border-2 border-blue-200">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-gray-600 text-sm font-semibold">Sertifikat</p>
-                        <p class="text-4xl font-bold text-blue-600 mt-2">0</p>
+                        <p class="text-gray-600 text-sm font-semibold">Pelajaran Selesai</p>
+                        <p class="text-4xl font-bold text-blue-600 mt-2">{{ total_lessons_completed }}/{{ total_lessons }}</p>
                     </div>
                     <i class="fas fa-award text-4xl text-blue-200"></i>
                 </div>
@@ -48,34 +48,124 @@
         <!-- My Courses Section -->
         <div class="mb-12">
             <div class="flex justify-between items-center mb-8">
-                <h2 class="text-2xl font-bold text-gray-900">Kursus Saya</h2>
+                <h2 class="text-2xl font-bold text-gray-900">Kursus Saya ({{ total_enrolled }})</h2>
                 <a href="{{ url_for('courses.list') }}" class="text-emerald-600 hover:text-emerald-700 font-semibold inline-flex items-center">
-                    Lihat Semua <i class="fas fa-arrow-right ml-2"></i>
+                    Jelajahi Lebih Banyak <i class="fas fa-arrow-right ml-2"></i>
                 </a>
             </div>
             
-            <!-- Empty State -->
-            <div class="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
-                <i class="fas fa-book-open text-6xl text-gray-300 mb-4"></i>
-                <p class="text-gray-600 text-lg font-semibold mb-4">Belum ada kursus</p>
-                <p class="text-gray-500 mb-6">Mulai pembelajaran dengan memilih kursus di bawah</p>
-                <a href="{{ url_for('courses.list') }}" class="inline-block bg-emerald-600 text-white px-6 py-3 rounded-lg hover:bg-emerald-700 transition">
-                    <i class="fas fa-search mr-2"></i> Jelajahi Kursus
-                </a>
-            </div>
-        </div>
-        
-        <!-- Recommended Courses Section -->
-        <div>
-            <h2 class="text-2xl font-bold text-gray-900 mb-8">Kursus Rekomendasi</h2>
-            
-            <!-- Empty State -->
-            <div class="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
-                <i class="fas fa-star text-6xl text-gray-300 mb-4"></i>
-                <p class="text-gray-600 text-lg font-semibold mb-4">Tidak ada rekomendasi saat ini</p>
-                <p class="text-gray-500 mb-6">Kursus rekomendasi akan muncul berdasarkan aktivitas Anda</p>
-            </div>
+            {% if courses_with_progress %}
+                <!-- Courses Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                    {% for item in courses_with_progress %}
+                        {% set course = item.course %}
+                        {% set progress = item.progress %}
+                        <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition transform hover:scale-105">
+                            <!-- Course Header -->
+                            <div class="bg-gradient-to-r from-emerald-500 to-blue-600 h-32 flex items-center justify-center">
+                                <i class="fas {{ course.icon_class or 'fa-book' }} text-6xl text-white opacity-30"></i>
+                            </div>
+                            
+                            <!-- Course Info -->
+                            <div class="p-6">
+                                <h3 class="text-lg font-bold text-gray-900 mb-2 line-clamp-2">{{ course.title }}</h3>
+                                <p class="text-sm text-gray-600 mb-4">{{ course.grade_level or 'Semua Level' }}</p>
+                                
+                                <!-- Progress Bar -->
+                                <div class="mb-4">
+                                    {% if progress %}
+                                        <div class="flex justify-between items-center mb-2">
+                                            <span class="text-xs font-semibold text-gray-600">Progress</span>
+                                            <span class="text-xs font-bold text-emerald-600">{{ progress.progress_percent }}%</span>
+                                        </div>
+                                        <div class="w-full bg-gray-200 rounded-full h-2">
+                                            <div class="bg-emerald-600 h-2 rounded-full transition-all duration-300" 
+                                                 style="width: {{ progress.progress_percent }}%"></div>
+                                        </div>
+                                        <p class="text-xs text-gray-500 mt-2">
+                                            {{ progress.completed_lessons }}/{{ progress.total_lessons }} pelajaran selesai
+                                        </p>
+                                    {% else %}
+                                        <div class="text-gray-500 text-xs">Data progress tidak tersedia</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Action Buttons -->
+                                <div class="flex gap-2">
+                                    <!-- Get first lesson ID -->
+                                    {% if progress and progress.topics and progress.topics|length > 0 and progress.topics[0].lessons and progress.topics[0].lessons|length > 0 %}
+                                        <a href="{{ url_for('courses.view_lesson', lesson_id=progress.topics[0].lessons[0].lesson_id) }}" 
+                                           class="flex-1 bg-emerald-600 text-white text-sm font-semibold py-2 px-3 rounded hover:bg-emerald-700 transition text-center">
+                                            <i class="fas fa-play mr-1"></i> Lanjut
+                                        </a>
+                                    {% else %}
+                                        <button class="flex-1 bg-gray-400 text-white text-sm font-semibold py-2 px-3 rounded opacity-50 cursor-not-allowed">
+                                            <i class="fas fa-play mr-1"></i> Lanjut
+                                        </button>
+                                    {% endif %}
+                                    
+                                    <a href="{{ url_for('courses.detail', course_id=course.id) }}" 
+                                       class="flex-1 border-2 border-emerald-600 text-emerald-600 text-sm font-semibold py-2 px-3 rounded hover:bg-emerald-50 transition text-center">
+                                        <i class="fas fa-info-circle mr-1"></i> Detail
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+                
+                <!-- Pagination -->
+                {% if total_pages > 1 %}
+                    <div class="flex justify-center items-center gap-4 mt-8 mb-8">
+                        {% if has_prev %}
+                            <a href="{{ url_for('main.dashboard', page=current_page-1) }}" 
+                               class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition font-semibold">
+                                <i class="fas fa-chevron-left mr-2"></i> Sebelumnya
+                            </a>
+                        {% endif %}
+                        
+                        <div class="flex gap-2">
+                            {% for page_num in range(1, total_pages + 1) %}
+                                {% if page_num == current_page %}
+                                    <span class="px-4 py-2 bg-emerald-600 text-white rounded-lg font-bold">{{ page_num }}</span>
+                                {% elif page_num <= current_page + 2 and page_num >= current_page - 2 %}
+                                    <a href="{{ url_for('main.dashboard', page=page_num) }}" 
+                                       class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition font-semibold">
+                                        {{ page_num }}
+                                    </a>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        
+                        {% if has_next %}
+                            <a href="{{ url_for('main.dashboard', page=current_page+1) }}" 
+                               class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition font-semibold">
+                                Selanjutnya <i class="fas fa-chevron-right ml-2"></i>
+                            </a>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            {% else %}
+                <!-- Empty State -->
+                <div class="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
+                    <i class="fas fa-book-open text-6xl text-gray-300 mb-4"></i>
+                    <p class="text-gray-600 text-lg font-semibold mb-4">Belum ada kursus yang terdaftar</p>
+                    <p class="text-gray-500 mb-6">Mulai pembelajaran dengan memilih kursus dari koleksi kami</p>
+                    <a href="{{ url_for('courses.list') }}" class="inline-block bg-emerald-600 text-white px-6 py-3 rounded-lg hover:bg-emerald-700 transition font-semibold">
+                        <i class="fas fa-search mr-2"></i> Jelajahi Kursus
+                    </a>
+                </div>
+            {% endif %}
         </div>
     </div>
 </div>
+
+<style>
+    .line-clamp-2 {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+</style>
 {% endblock %}
