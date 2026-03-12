@@ -34,12 +34,13 @@ class MediaCompressionService:
             return False
 
     @staticmethod
-    def process_video_background(app, lesson_id, input_path, compressed_folder, hls_folder):
+    def process_video_background(app, lesson_id, input_path, compressed_folder, hls_folder, user_id):
         """
         Background task untuk memproses video (Compression + HLS + Thumbnail)
         """
         with app.app_context():
             from app.models.lesson import Lesson
+            from app.models.notification import Notification
             from app import db
             
             lesson = Lesson.query.get(lesson_id)
@@ -73,11 +74,27 @@ class MediaCompressionService:
                     lesson.hls_path = hls_result['playlist_path']
                 
                 lesson.compression_status = 'completed'
+                
+                # Add notification
+                notif = Notification(
+                    user_id=user_id,
+                    message=f"Video untuk pelajaran '{lesson.title}' berhasil diproses!",
+                    type='success',
+                    link=f"/admin/course/{lesson.topic.course_id}"
+                )
+                db.session.add(notif)
                 db.session.commit()
                 
             except Exception as e:
                 lesson.compression_status = 'failed'
                 lesson.compression_metadata = {'error': str(e)}
+                
+                notif = Notification(
+                    user_id=user_id,
+                    message=f"Gagal memproses video '{lesson.title}': {str(e)}",
+                    type='danger'
+                )
+                db.session.add(notif)
                 db.session.commit()
                 print(f"Background Video Processing Error: {str(e)}")
 

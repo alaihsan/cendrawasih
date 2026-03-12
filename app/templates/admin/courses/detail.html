@@ -88,20 +88,27 @@
                                         <div class="bg-gray-50 p-3 rounded flex justify-between items-center">
                                             <div class="flex items-center">
                                                 <i class="fas 
-                                                    {% if lesson.content_type == 'video' %}
+                                                    {% if lesson.content_type == 'video' or lesson.content_type == 'video_url' %}
                                                         fa-video
                                                     {% elif lesson.content_type == 'pdf' %}
                                                         fa-file-pdf
+                                                    {% elif lesson.content_type == 'quiz' %}
+                                                        fa-tasks
                                                     {% else %}
                                                         fa-file-alt
                                                     {% endif %}
                                                     text-gray-500 mr-3"></i>
                                                 <div>
                                                     <p class="font-semibold text-gray-900 text-sm">{{ lesson.title }}</p>
-                                                    <p class="text-gray-500 text-xs">{{ lesson.content_type|upper }}</p>
+                                                    <p class="text-gray-500 text-[10px] uppercase font-bold tracking-tight">{{ lesson.content_type }}</p>
                                                 </div>
                                             </div>
                                             <div class="flex gap-2">
+                                                {% if lesson.content_type == 'quiz' %}
+                                                    <a href="{{ url_for('admin.lesson_quiz_manage', lesson_id=lesson.id) }}" class="px-2 py-1 text-xs bg-emerald-600 text-white rounded hover:bg-emerald-700 transition">
+                                                        <i class="fas fa-list-ol mr-1"></i> Soal
+                                                    </a>
+                                                {% endif %}
                                                 <a href="{{ url_for('admin.lesson_edit', lesson_id=lesson.id) }}" class="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition">
                                                     Edit
                                                 </a>

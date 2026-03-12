@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, TextAreaField, SelectField, SubmitField, IntegerField
+from wtforms import StringField, TextAreaField, SelectField, SubmitField, IntegerField, BooleanField
 from wtforms.fields import FileField
 from wtforms.validators import DataRequired, Length, Optional
 
@@ -46,7 +46,8 @@ class LessonForm(FlaskForm):
         ('text', 'Text'),
         ('video', 'Video Upload'),
         ('video_url', 'Video URL'),
-        ('pdf', 'PDF')
+        ('pdf', 'PDF'),
+        ('quiz', 'Quiz')
     ], default='text')
     content_url = StringField('URL Konten', validators=[Optional(), Length(max=255)])
     
@@ -59,3 +60,21 @@ class LessonForm(FlaskForm):
     text_content = TextAreaField('Konten Teks', validators=[Optional()])
     order = IntegerField('Urutan', validators=[Optional()], default=0)
     submit = SubmitField('Simpan Pembelajaran')
+
+class QuizQuestionForm(FlaskForm):
+    question_text = TextAreaField('Teks Pertanyaan', validators=[DataRequired()])
+    
+    # Opsi jawaban (Sederhanakan jadi 4 opsi untuk demo)
+    option1 = StringField('Opsi 1', validators=[DataRequired()])
+    is_correct1 = BooleanField('Benar')
+    
+    option2 = StringField('Opsi 2', validators=[DataRequired()])
+    is_correct2 = BooleanField('Benar')
+    
+    option3 = StringField('Opsi 3', validators=[DataRequired()])
+    is_correct3 = BooleanField('Benar')
+    
+    option4 = StringField('Opsi 4', validators=[DataRequired()])
+    is_correct4 = BooleanField('Benar')
+    
+    submit = SubmitField('Simpan Pertanyaan')

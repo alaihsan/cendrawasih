@@ -44,8 +44,32 @@
                         {{ form.video_file(class="", accept="video/*") }}
                         <p class="text-sm text-gray-600 mt-2">Format: MP4, WebM, AVI, MOV (Maks 100MB)</p>
                         <p class="text-xs text-emerald-600 mt-1">Video akan dikompresi otomatis ke multiple quality!</p>
-                        {% if lesson.compressed_video_versions %}
-                            <p class="text-xs text-gray-500 mt-2">Video saat ini: Tersedia dalam 4 quality level</p>
+                        
+                        <!-- Current Video Status -->
+                        {% if lesson.content_type == 'video' and lesson.content_url %}
+                            <div class="mt-4 p-3 bg-white border border-emerald-200 rounded-lg text-left">
+                                <p class="text-xs font-bold text-emerald-700 uppercase mb-2">Video Aktif Saat Ini:</p>
+                                <div class="flex items-center gap-3">
+                                    <div class="w-12 h-12 bg-emerald-100 rounded flex items-center justify-center text-emerald-600">
+                                        <i class="fas fa-play"></i>
+                                    </div>
+                                    <div class="flex-1 overflow-hidden">
+                                        <p class="text-xs text-slate-700 truncate font-mono">{{ lesson.content_url.split('/')[-1] }}</p>
+                                        <div class="flex items-center gap-2 mt-1">
+                                            <span class="text-[10px] px-2 py-0.5 rounded-full 
+                                                {% if lesson.compression_status == 'completed' %}bg-green-100 text-green-700
+                                                {% elif lesson.compression_status == 'processing' %}bg-blue-100 text-blue-700
+                                                {% elif lesson.compression_status == 'failed' %}bg-red-100 text-red-700
+                                                {% else %}bg-gray-100 text-gray-700{% endif %}">
+                                                Status: {{ lesson.compression_status|title }}
+                                            </span>
+                                            {% if lesson.hls_path %}
+                                                <span class="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">HLS Ready</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         {% endif %}
                     </div>
                 </div>
@@ -59,8 +83,19 @@
                         {{ form.image_file(class="", accept="image/*") }}
                         <p class="text-sm text-gray-600 mt-2">Format: JPG, PNG, WebP, GIF</p>
                         <p class="text-xs text-blue-600 mt-1">Gambar akan dikompresi otomatis!</p>
+                        
+                        <!-- Current Image Preview -->
                         {% if lesson.compressed_image %}
-                            <p class="text-xs text-gray-500 mt-2">Gambar saat ini: {{ lesson.compressed_image }}</p>
+                            <div class="mt-4 p-3 bg-white border border-blue-200 rounded-lg text-left">
+                                <p class="text-xs font-bold text-blue-700 uppercase mb-2">Gambar Aktif Saat Ini:</p>
+                                <div class="flex items-center gap-4">
+                                    <img src="{{ url_for('static', filename=lesson.compressed_image) }}" class="w-20 h-20 object-cover rounded shadow-sm" alt="Thumbnail">
+                                    <div class="flex-1">
+                                        <p class="text-xs text-slate-600 truncate">{{ lesson.compressed_image.split('/')[-1] }}</p>
+                                        <p class="text-[10px] text-blue-500 mt-1 italic">Akan diganti otomatis jika Anda mengunggah file baru.</p>
+                                    </div>
+                                </div>
+                            </div>
                         {% endif %}
                     </div>
                 </div>

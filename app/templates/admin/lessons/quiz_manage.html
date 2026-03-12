@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Kelola Quiz - {{ lesson.title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div class="fade-in">
+        <div class="flex justify-between items-center mb-8">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">Kelola Pertanyaan Quiz</h1>
+                <p class="text-gray-600 mt-1">Pelajaran: {{ lesson.title }}</p>
+            </div>
+            <div class="flex gap-3">
+                <a href="{{ url_for('admin.course_detail', course_id=lesson.topic.course_id) }}" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 font-semibold transition">
+                    Kembali
+                </a>
+                <a href="{{ url_for('admin.question_create', lesson_id=lesson.id) }}" class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-semibold transition">
+                    <i class="fas fa-plus mr-2"></i> Tambah Soal
+                </a>
+            </div>
+        </div>
+
+        {% if questions %}
+            <div class="space-y-6">
+                {% for question in questions %}
+                    <div class="bg-white rounded-lg shadow-md border-l-4 border-emerald-500 overflow-hidden">
+                        <div class="p-6">
+                            <div class="flex justify-between items-start">
+                                <div class="flex-1">
+                                    <span class="text-xs font-bold text-emerald-600 uppercase tracking-widest">Pertanyaan #{{ loop.index }}</span>
+                                    <h3 class="text-lg font-semibold text-gray-900 mt-1">{{ question.question_text }}</h3>
+                                </div>
+                                <form action="{{ url_for('admin.question_delete', question_id=question.id) }}" method="POST" onsubmit="return confirm('Hapus pertanyaan ini?')">
+                                    <button type="submit" class="text-red-400 hover:text-red-600 transition">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </form>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-6">
+                                {% for option in question.options %}
+                                    <div class="flex items-center p-3 rounded-lg border {% if option.is_correct %}bg-emerald-50 border-emerald-200 text-emerald-800{% else %}bg-slate-50 border-slate-100 text-slate-600{% endif %}">
+                                        <div class="w-6 h-6 rounded-full flex items-center justify-center mr-3 {% if option.is_correct %}bg-emerald-500 text-white{% else %}bg-slate-200 text-slate-400{% endif %} text-xs font-bold">
+                                            {{ loop.index }}
+                                        </div>
+                                        <span class="text-sm">{{ option.option_text }}</span>
+                                        {% if option.is_correct %}
+                                            <i class="fas fa-check-circle ml-auto text-emerald-500"></i>
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="bg-white rounded-lg shadow-md p-12 text-center">
+                <div class="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-400">
+                    <i class="fas fa-question-circle text-4xl"></i>
+                </div>
+                <h3 class="text-xl font-bold text-gray-900 mb-2">Belum Ada Pertanyaan</h3>
+                <p class="text-gray-600 mb-8">Tambahkan beberapa pertanyaan untuk menguji pemahaman siswa.</p>
+                <a href="{{ url_for('admin.question_create', lesson_id=lesson.id) }}" class="inline-block bg-emerald-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-emerald-700 transition">
+                    Tambah Pertanyaan Pertama
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -19,6 +19,10 @@ class Lesson(db.Model):
     
     # Relasi untuk melihat siapa saja yang sudah menyelesaikan lesson ini
     user_progress = db.relationship('LessonProgress', backref='lesson', lazy='dynamic')
+    
+    # Relasi ke Quiz
+    quiz_questions = db.relationship('QuizQuestion', backref='lesson', lazy='dynamic', cascade='all, delete-orphan')
+    quiz_attempts = db.relationship('QuizAttempt', backref='lesson', lazy='dynamic', cascade='all, delete-orphan')
 
     def __repr__(self):
         return f'<Lesson {self.title}>'

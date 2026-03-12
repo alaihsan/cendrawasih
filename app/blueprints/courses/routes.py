@@ -1,8 +1,54 @@
 from flask import render_template, redirect, url_for, flash, request, jsonify
 from flask_login import current_user, login_required
 from app.blueprints.courses import bp
+from app.models.quiz import QuizQuestion, QuizOption, QuizAttempt
 from app.services.course_service import CourseService
 from app.services.progress import ProgressService
+from app import db
+
+# ... (other imports) ...
+
+@bp.route('/lessons/<int:lesson_id>/quiz/submit', methods=['POST'])
+@login_required
+def submit_quiz(lesson_id):
+    """Handle quiz submission from student"""
+    lesson = CourseService.get_lesson_by_id(lesson_id)
+    if not lesson or lesson.content_type != 'quiz':
+        flash('Quiz tidak ditemukan', 'danger')
+        return redirect(url_for('main.dashboard'))
+        
+    questions = lesson.quiz_questions.all()
+    if not questions:
+        flash('Quiz ini belum memiliki pertanyaan', 'warning')
+        return redirect(url_for('courses.view_lesson', lesson_id=lesson.id))
+        
+    total_questions = len(questions)
+    correct_answers = 0
+    
+    # Check answers
+    for question in questions:
+        selected_option_id = request.form.get(f'question_{question.id}')
+        if selected_option_id:
+            option = QuizOption.query.get(int(selected_option_id))
+            if option and option.is_correct:
+                correct_answers += 1
+                
+    score = (correct_answers / total_questions) * 100
+    
+    # Save attempt
+    attempt = QuizAttempt(user_id=current_user.id, lesson_id=lesson.id, score=score)
+    db.session.add(attempt)
+    
+    # Mark lesson as complete if score >= 80
+    if score >= 80:
+        from app.services.progress import ProgressService
+        ProgressService.mark_lesson_complete(current_user.id, lesson.id)
+        flash(f'Selamat! Anda lulus quiz dengan skor {score:.0f}%', 'success')
+    else:
+        flash(f'Skor Anda {score:.0f}%. Anda harus mencapai minimal 80% untuk lulus.', 'warning')
+        
+    db.session.commit()
+    return redirect(url_for('courses.view_lesson', lesson_id=lesson.id))
 from datetime import datetime, timedelta
 
 @bp.route('/list')
@@ -202,11 +248,28 @@ def view_lesson(lesson_id):
     # Calculate actual progress for course
     progress_data, _ = ProgressService.get_user_progress(current_user.id, course.id)
     
-    return render_template('courses/lesson.html', lesson=lesson, topic=topic, course=course,
-                         progress=progress, prev_lesson=prev_lesson, next_lesson=next_lesson,
-                         video_sources=video_sources, is_trial_active=is_trial_active,
-                         trial_expiry=trial_expiry, is_first_lesson=is_first_lesson,
-                         progress_data=progress_data)
+    # Quiz Data
+    quiz_questions = []
+    last_attempt = None
+    if lesson.content_type == 'quiz':
+        quiz_questions = lesson.quiz_questions.all()
+        last_attempt = QuizAttempt.query.filter_by(user_id=current_user.id, lesson_id=lesson.id).order_by(QuizAttempt.completed_at.desc()).first()
+
+    return render_template('courses/lesson.html', 
+                         lesson=lesson, 
+                         topic=topic, 
+                         course=course,
+                         progress=progress, 
+                         prev_lesson=prev_lesson, 
+                         next_lesson=next_lesson,
+                         video_sources=video_sources, 
+                         is_trial_active=is_trial_active,
+                         trial_expiry=trial_expiry, 
+                         is_first_lesson=is_first_lesson,
+                         progress_data=progress_data,
+                         is_enrolled=is_enrolled,
+                         quiz_questions=quiz_questions,
+                         last_attempt=last_attempt)
 
 @bp.route('/<int:course_id>/preview')
 def course_preview(course_id):

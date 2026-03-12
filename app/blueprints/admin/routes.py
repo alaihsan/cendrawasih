@@ -4,10 +4,78 @@ from flask_login import current_user, login_required
 from werkzeug.utils import secure_filename
 from app.blueprints.admin import bp
 from app.utils.decorators import teacher_required, admin_required
-from app.forms.admin_forms import CourseForm, TopicForm, LessonForm
+from app.forms.admin_forms import CourseForm, TopicForm, LessonForm, QuizQuestionForm
 from app.services.course_service import CourseService
 from app.utils.file_handler import FileHandler
 from app import db
+from app.models.quiz import QuizQuestion, QuizOption
+
+# ... (other routes) ...
+
+@bp.route('/lessons/<int:lesson_id>/quiz', methods=['GET'])
+@login_required
+def lesson_quiz_manage(lesson_id):
+    """Manage quiz questions for a lesson"""
+    lesson = CourseService.get_lesson_by_id(lesson_id)
+    if not lesson:
+        flash('Pelajaran tidak ditemukan', 'danger')
+        return redirect(url_for('admin.courses_list'))
+    
+    if lesson.content_type != 'quiz':
+        flash('Pelajaran ini bukan tipe Quiz', 'warning')
+        return redirect(url_for('admin.course_detail', course_id=lesson.topic.course_id))
+        
+    questions = lesson.quiz_questions.all()
+    return render_template('admin/lessons/quiz_manage.html', lesson=lesson, questions=questions)
+
+@bp.route('/lessons/<int:lesson_id>/quiz/questions/create', methods=['GET', 'POST'])
+@login_required
+def question_create(lesson_id):
+    """Add a question to a quiz lesson"""
+    lesson = CourseService.get_lesson_by_id(lesson_id)
+    if not lesson:
+        flash('Pelajaran tidak ditemukan', 'danger')
+        return redirect(url_for('admin.courses_list'))
+        
+    form = QuizQuestionForm()
+    if form.validate_on_submit():
+        # Create question
+        question = QuizQuestion(lesson_id=lesson.id, question_text=form.question_text.data)
+        db.session.add(question)
+        db.session.flush() # Get question ID
+        
+        # Create options
+        options_data = [
+            (form.option1.data, form.is_correct1.data),
+            (form.option2.data, form.is_correct2.data),
+            (form.option3.data, form.is_correct3.data),
+            (form.option4.data, form.is_correct4.data),
+        ]
+        
+        for text, correct in options_data:
+            option = QuizOption(question_id=question.id, option_text=text, is_correct=correct)
+            db.session.add(option)
+            
+        db.session.commit()
+        flash('Pertanyaan berhasil ditambahkan!', 'success')
+        return redirect(url_for('admin.lesson_quiz_manage', lesson_id=lesson.id))
+        
+    return render_template('admin/lessons/question_create.html', lesson=lesson, form=form)
+
+@bp.route('/questions/<int:question_id>/delete', methods=['POST'])
+@login_required
+def question_delete(question_id):
+    """Delete a quiz question"""
+    question = QuizQuestion.query.get(question_id)
+    if not question:
+        flash('Pertanyaan tidak ditemukan', 'danger')
+        return redirect(url_for('admin.courses_list'))
+        
+    lesson_id = question.lesson_id
+    db.session.delete(question)
+    db.session.commit()
+    flash('Pertanyaan berhasil dihapus!', 'success')
+    return redirect(url_for('admin.lesson_quiz_manage', lesson_id=lesson_id))
 
 # ============ DASHBOARD ============
 
@@ -295,7 +363,7 @@ def lesson_create(topic_id):
                 app = current_app._get_current_object()
                 thread = threading.Thread(
                     target=MediaCompressionService.process_video_background,
-                    args=(app, lesson.id, original_path, compressed_folder, hls_folder)
+                    args=(app, lesson.id, original_path, compressed_folder, hls_folder, current_user.id)
                 )
                 thread.start()
                 
@@ -371,8 +439,19 @@ def lesson_edit(lesson_id):
             original_path = os.path.join(media_folder, filename)
             form.video_file.data.save(original_path)
             
+            # HAPUS FILE FISIK LAMA JIKA ADA
+            if lesson.content_url and os.path.exists(lesson.content_url):
+                try:
+                    os.remove(lesson.content_url)
+                except:
+                    pass
+            
+            # RESET DATA LAMA di database
             lesson.content_url = original_path
             lesson.compression_status = 'pending'
+            lesson.compressed_video_versions = None
+            lesson.hls_path = None
+            lesson.compression_metadata = None
             db.session.commit()
             
             # Trigger background processing
@@ -382,20 +461,34 @@ def lesson_edit(lesson_id):
             app = current_app._get_current_object()
             thread = threading.Thread(
                 target=MediaCompressionService.process_video_background,
-                args=(app, lesson.id, original_path, compressed_folder, hls_folder)
+                args=(app, lesson.id, original_path, compressed_folder, hls_folder, current_user.id)
             )
             thread.start()
             
-            flash('Pelajaran diupdate! Video sedang diproses di background.', 'info')
+            flash('Video baru berhasil diunggah! Data lama telah diganti dan video sedang diproses.', 'info')
         elif form.content_url.data:
-            lesson.content_url = form.content_url.data
+            # Jika user mengganti ke URL eksternal, bersihkan data video lokal
+            if lesson.content_url != form.content_url.data:
+                lesson.content_url = form.content_url.data
+                lesson.compressed_video_versions = None
+                lesson.hls_path = None
+                lesson.compression_status = 'completed'
         
         db.session.commit()
         
         # Handle image upload jika ada
         if form.image_file.data:
-            image_folder = current_app.config.get('MEDIA_UPLOAD_FOLDER') or 'app/static/uploads/media'
-            compressed_folder = current_app.config.get('COMPRESSED_FOLDER') or 'app/static/uploads/compressed'
+            image_folder = current_app.config.get('MEDIA_UPLOAD_FOLDER')
+            compressed_folder = current_app.config.get('COMPRESSED_FOLDER')
+            
+            # Hapus gambar lama secara fisik jika ada
+            if lesson.compressed_image:
+                old_img_path = os.path.join(current_app.root_path, 'static', lesson.compressed_image)
+                if os.path.exists(old_img_path):
+                    try:
+                        os.remove(old_img_path)
+                    except:
+                        pass
             
             image_result = FileHandler.save_image_file(form.image_file.data, image_folder, compressed_folder)
             if image_result['success']:

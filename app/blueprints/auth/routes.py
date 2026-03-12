@@ -1,8 +1,9 @@
 from flask import render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, current_user, login_required
 from app.blueprints.auth import bp
-from app.forms.auth_forms import LoginForm, RegisterForm
+from app.forms.auth_forms import LoginForm, RegisterForm, ProfileForm, ChangePasswordForm
 from app.services.user_service import UserService
+from app import db
 
 @bp.route('/login', methods=['GET', 'POST'])
 def login():
@@ -56,12 +57,39 @@ def logout():
     flash('Anda telah logout.', 'info')
     return redirect(url_for('main.index'))
 
-@bp.route('/profile')
+@bp.route('/profile', methods=['GET', 'POST'])
 @login_required
 def profile():
-    """User profile page"""
+    """User profile page with edit functionality"""
     user = UserService.get_user_by_id(current_user.id)
-    return render_template('auth/profile.html', user=user)
+    profile_form = ProfileForm(current_user.username, current_user.email)
+    password_form = ChangePasswordForm()
+    
+    # Check which form was submitted by looking for unique fields
+    if request.method == 'POST':
+        if 'username' in request.form and profile_form.validate_on_submit():
+            current_user.username = profile_form.username.data
+            current_user.email = profile_form.email.data
+            db.session.commit()
+            flash('Profil Anda berhasil diperbarui!', 'success')
+            return redirect(url_for('auth.profile'))
+            
+        if 'old_password' in request.form and password_form.validate_on_submit():
+            if current_user.check_password(password_form.old_password.data):
+                current_user.set_password(password_form.new_password.data)
+                db.session.commit()
+                flash('Password Anda berhasil diubah!', 'success')
+                return redirect(url_for('auth.profile'))
+            else:
+                flash('Password lama salah.', 'danger')
+            
+    if request.method == 'GET':
+        profile_form.username.data = current_user.username
+        profile_form.email.data = current_user.email
+        
+    return render_template('auth/profile.html', user=user, 
+                         profile_form=profile_form, 
+                         password_form=password_form)
 
 def url_has_allowed_host_and_scheme(url, allowed_hosts=None):
     """Check if URL has allowed host and scheme (for redirect validation)"""

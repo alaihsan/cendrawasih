@@ -47,3 +47,44 @@ class RegisterForm(FlaskForm):
         user = User.query.filter_by(email=email.data).first()
         if user is not None:
             raise ValidationError('Email sudah terdaftar. Silakan login atau gunakan email lain.')
+
+class ProfileForm(FlaskForm):
+    username = StringField('Username', validators=[
+        DataRequired(message='Username diperlukan'),
+        Length(min=3, max=64, message='Username harus 3-64 karakter'),
+        Regexp('^[A-Za-z0-9_]+$', message='Username hanya boleh huruf, angka, dan underscore')
+    ])
+    email = StringField('Email', validators=[
+        DataRequired(message='Email diperlukan'),
+        Email(message='Format email tidak valid')
+    ])
+    submit = SubmitField('Update Profil')
+
+    def __init__(self, original_username, original_email, *args, **kwargs):
+        super(ProfileForm, self).__init__(*args, **kwargs)
+        self.original_username = original_username
+        self.original_email = original_email
+
+    def validate_username(self, username):
+        if username.data != self.original_username:
+            user = User.query.filter_by(username=username.data).first()
+            if user is not None:
+                raise ValidationError('Username sudah digunakan.')
+
+    def validate_email(self, email):
+        if email.data != self.original_email:
+            user = User.query.filter_by(email=email.data).first()
+            if user is not None:
+                raise ValidationError('Email sudah terdaftar.')
+
+class ChangePasswordForm(FlaskForm):
+    old_password = PasswordField('Password Saat Ini', validators=[DataRequired()])
+    new_password = PasswordField('Password Baru', validators=[
+        DataRequired(),
+        Length(min=6, message='Minimal 6 karakter')
+    ])
+    confirm_password = PasswordField('Konfirmasi Password Baru', validators=[
+        DataRequired(),
+        EqualTo('new_password', message='Password tidak cocok')
+    ])
+    submit = SubmitField('Ubah Password')
