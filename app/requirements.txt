@@ -7,3 +7,7 @@ email-validator
 flask-wtf
 PyMySQL
 Werkzeug
+cryptography
+Pillow
+pytest
+flake8
