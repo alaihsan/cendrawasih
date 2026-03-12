@@ -90,6 +90,17 @@
 <body class="bg-gray-50">
     <!-- Progressive Loading Indicator -->
     <div class="progress-bar htmx-indicator" id="global-progress"></div>
+
+    <!-- Offline Status Toast -->
+    <div id="offline-toast" class="fixed bottom-4 left-4 z-[100] hidden">
+        <div class="bg-slate-900 text-white px-4 py-3 rounded-lg shadow-2xl flex items-center gap-3 border-l-4 border-amber-500">
+            <i class="fas fa-wifi-slash text-amber-500"></i>
+            <div>
+                <p class="text-xs font-bold uppercase tracking-widest">Offline Mode</p>
+                <p class="text-[10px] opacity-80">Menggunakan data lokal (Cache)</p>
+            </div>
+        </div>
+    </div>
     <!-- Navigation -->
     <nav class="bg-white border-b-2 border-emerald-500 shadow-md">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -445,6 +456,31 @@
         fetchNotifications();
         setInterval(fetchNotifications, 30000);
         {% endif %}
+
+        // PWA SERVICE WORKER REGISTRATION
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/static/sw.js')
+                    .then(reg => console.log('SW Registered'))
+                    .catch(err => console.log('SW Reg Failed', err));
+            });
+        }
+
+        // ONLINE/OFFLINE STATUS MONITORING
+        function updateOnlineStatus() {
+            const toast = document.getElementById('offline-toast');
+            if (navigator.onLine) {
+                toast.classList.add('hidden');
+            } else {
+                toast.classList.remove('hidden');
+            }
+        }
+
+        window.addEventListener('online', updateOnlineStatus);
+        window.addEventListener('offline', updateOnlineStatus);
+        
+        // Initial check
+        updateOnlineStatus();
     </script>
     
     {% block extra_js %}{% endblock %}

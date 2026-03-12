@@ -65,3 +65,8 @@ def dashboard():
         has_prev=(page > 1),
         has_next=(page < total_pages)
     )
+
+@bp.route('/offline')
+def offline():
+    """Offline fallback page"""
+    return render_template('offline.html')
