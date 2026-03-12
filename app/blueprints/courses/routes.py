@@ -263,6 +263,34 @@ def course_preview(course_id):
                          is_trial_active=is_trial_active,
                          trial_expiry=trial_expiry)
 
+@bp.route('/<int:course_id>/preview-modal')
+def course_preview_modal(course_id):
+    """Partial HTML for course preview modal"""
+    course = CourseService.get_course_by_id(course_id)
+    if not course:
+        return "<p class='p-4 text-center text-red-600'>Kursus tidak ditemukan</p>", 404
+    
+    all_topics = course.topics.order_by('order').all()
+    topics_with_lessons = []
+    total_lessons = 0
+    for topic in all_topics:
+        lessons_list = topic.lessons.order_by('order').all()
+        topics_with_lessons.append({
+            'title': topic.title,
+            'lessons': lessons_list
+        })
+        total_lessons += len(lessons_list)
+    
+    is_enrolled = False
+    if current_user.is_authenticated:
+        is_enrolled = CourseService.is_student_enrolled(current_user.id, course_id)
+        
+    return render_template('courses/_preview_modal.html', 
+                         course=course,
+                         topics_with_lessons=topics_with_lessons,
+                         total_lessons=total_lessons,
+                         is_enrolled=is_enrolled)
+
 @bp.route('/<int:course_id>/start-trial', methods=['POST'])
 @login_required
 def start_trial(course_id):

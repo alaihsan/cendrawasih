@@ -214,6 +214,26 @@
             </div>
         </div>
     </footer>
+
+    <!-- Course Preview Modal -->
+    <div id="course-preview-modal" class="fixed inset-0 z-[100] hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <!-- Background overlay -->
+            <div class="fixed inset-0 bg-slate-900 bg-opacity-75 transition-opacity" aria-hidden="true" onclick="closePreviewModal()"></div>
+
+            <!-- Modal panel -->
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full border-b-4 border-emerald-500">
+                <div id="modal-loader" class="p-12 text-center">
+                    <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-emerald-500 border-t-transparent"></div>
+                    <p class="mt-4 text-slate-600 font-semibold">Memuat preview kursus...</p>
+                </div>
+                <div id="modal-content-area">
+                    <!-- Content will be loaded here via AJAX -->
+                </div>
+            </div>
+        </div>
+    </div>
     
     <!-- Plyr Video Player JS -->
     <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
@@ -247,7 +267,7 @@
                 
                 // Close menu when clicking outside
                 document.addEventListener('click', function(e) {
-                    if (!profileMenuContainer.contains(e.target)) {
+                    if (profileMenuContainer && !profileMenuContainer.contains(e.target)) {
                         profileDropdown.classList.add('hidden');
                     }
                 });
@@ -259,6 +279,57 @@
                         profileDropdown.classList.add('hidden');
                     });
                 });
+            }
+        });
+
+        // Course Preview Modal Logic
+        function openPreviewModal(courseId) {
+            const modal = document.getElementById('course-preview-modal');
+            const loader = document.getElementById('modal-loader');
+            const contentArea = document.getElementById('modal-content-area');
+            
+            // Show modal and loader
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden'; // Prevent scrolling
+            loader.classList.remove('hidden');
+            contentArea.innerHTML = '';
+            
+            // Fetch preview content
+            fetch(`/courses/${courseId}/preview-modal`)
+                .then(response => {
+                    if (!response.ok) throw new Error('Gagal memuat preview');
+                    return response.text();
+                })
+                .then(html => {
+                    loader.classList.add('hidden');
+                    contentArea.innerHTML = html;
+                })
+                .catch(error => {
+                    loader.classList.add('hidden');
+                    contentArea.innerHTML = `
+                        <div class="p-8 text-center">
+                            <i class="fas fa-exclamation-circle text-red-500 text-4xl mb-4"></i>
+                            <p class="text-slate-800 font-bold mb-2">Ups! Terjadi Kesalahan</p>
+                            <p class="text-slate-600 mb-6">${error.message}</p>
+                            <button onclick="closePreviewModal()" class="px-6 py-2 bg-slate-200 text-slate-800 rounded-lg font-bold hover:bg-slate-300 transition">Tutup</button>
+                        </div>
+                    `;
+                });
+        }
+
+        function closePreviewModal() {
+            const modal = document.getElementById('course-preview-modal');
+            modal.classList.add('hidden');
+            document.body.style.overflow = ''; // Restore scrolling
+            // Stop any playing videos in the modal
+            const videos = modal.querySelectorAll('video');
+            videos.forEach(v => v.pause());
+        }
+
+        // Close modal on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closePreviewModal();
             }
         });
     </script>

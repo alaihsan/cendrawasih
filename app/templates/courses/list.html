@@ -155,18 +155,12 @@
                                 
                                 <!-- Buttons -->
                                 <div class="flex gap-2 pt-3">
-                                    <a href="{{ url_for('courses.course_preview', course_id=course.id) }}" class="flex-1 py-2 text-center text-emerald-600 font-semibold border border-emerald-600 rounded-lg hover:bg-emerald-50 transition text-sm link-underline">
+                                    <button onclick="openPreviewModal({{ course.id }})" class="flex-1 py-2 text-center text-emerald-600 font-semibold border border-emerald-600 rounded-lg hover:bg-emerald-50 transition text-sm">
                                         <i class="fas fa-eye mr-1"></i> Preview
+                                    </button>
+                                    <a href="{{ url_for('courses.detail', course_id=course.id) }}" class="flex-1 py-2 text-center bg-emerald-600 text-white font-semibold rounded-lg hover:bg-emerald-700 transition text-sm">
+                                        <i class="fas fa-graduation-cap mr-1"></i> Learn
                                     </a>
-                                    {% if current_user.is_authenticated and user_enrolled.get(course.id) %}
-                                        <a href="{{ url_for('courses.detail', course_id=course.id) }}" class="flex-1 py-2 text-center bg-emerald-600 text-white font-semibold rounded-lg hover:bg-emerald-700 transition text-sm">
-                                            <i class="fas fa-book-open mr-1"></i> Buka
-                                        </a>
-                                    {% else %}
-                                        <a href="{{ url_for('courses.detail', course_id=course.id) }}" class="flex-1 py-2 text-center bg-emerald-600 text-white font-semibold rounded-lg hover:bg-emerald-700 transition text-sm btn-hover-lift">
-                                            <i class="fas fa-plus-circle mr-1"></i> Lihat
-                                        </a>
-                                    {% endif %}
                                 </div>
                             </div>
                         </div>
