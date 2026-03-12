@@ -1,5 +1,7 @@
+import os
 from flask import render_template, redirect, url_for, flash, request, current_app
 from flask_login import current_user, login_required
+from werkzeug.utils import secure_filename
 from app.blueprints.admin import bp
 from app.utils.decorators import teacher_required, admin_required
 from app.forms.admin_forms import CourseForm, TopicForm, LessonForm
@@ -360,24 +362,31 @@ def lesson_edit(lesson_id):
         
         # Handle content URL atau video upload
         if form.content_type.data == 'video' and form.video_file.data:
-            media_folder = current_app.config.get('MEDIA_UPLOAD_FOLDER') or 'app/static/uploads/media'
-            compressed_folder = current_app.config.get('COMPRESSED_FOLDER') or 'app/static/uploads/compressed'
+            media_folder = current_app.config.get('MEDIA_UPLOAD_FOLDER')
+            compressed_folder = current_app.config.get('COMPRESSED_FOLDER')
+            hls_folder = current_app.config.get('HLS_FOLDER')
             
-            upload_result = FileHandler.save_video_file(form.video_file.data, media_folder, compressed_folder)
+            filename = FileHandler.generate_unique_filename(secure_filename(form.video_file.data.filename))
+            os.makedirs(media_folder, exist_ok=True)
+            original_path = os.path.join(media_folder, filename)
+            form.video_file.data.save(original_path)
             
-            if upload_result['success']:
-                lesson.content_url = upload_result['original_path']
-                lesson.compression_status = 'completed'
-                lesson.compression_metadata = {
-                    'original_size': upload_result['original_size'],
-                    'total_compressed_size': upload_result.get('total_compressed_size'),
-                    'compression_ratio': upload_result.get('compression_ratio')
-                }
-                lesson.compressed_video_versions = upload_result.get('versions', {})
-                flash(f"Video berhasil diupload! Kompresi: {upload_result.get('compression_ratio', 0):.1f}%", 'success')
-            else:
-                flash(f"Error upload video: {upload_result['message']}", 'danger')
-                return render_template('admin/lessons/edit.html', form=form, lesson=lesson, topic=topic, course=course)
+            lesson.content_url = original_path
+            lesson.compression_status = 'pending'
+            db.session.commit()
+            
+            # Trigger background processing
+            import threading
+            from app.services.media_compression_service import MediaCompressionService
+            
+            app = current_app._get_current_object()
+            thread = threading.Thread(
+                target=MediaCompressionService.process_video_background,
+                args=(app, lesson.id, original_path, compressed_folder, hls_folder)
+            )
+            thread.start()
+            
+            flash('Pelajaran diupdate! Video sedang diproses di background.', 'info')
         elif form.content_url.data:
             lesson.content_url = form.content_url.data
         

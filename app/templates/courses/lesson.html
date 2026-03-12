@@ -42,7 +42,8 @@
                                 
                                 <!-- Plyr Video Player -->
                                 <div id="videoContainer" class="w-full h-full">
-                                    <video id="lessonVideo" playsinline controls>
+                                    <video id="lessonVideo" playsinline controls 
+                                        {% if lesson.compressed_image %}poster="{{ url_for('static', filename=lesson.compressed_image) }}"{% endif %}>
                                         {% if video_sources %}
                                             <!-- First source is default -->
                                             {% set first_source = video_sources[0] %}
@@ -58,6 +59,26 @@
                                 <div class="text-white text-center">
                                     <i class="fas fa-video text-6xl mb-4 opacity-50"></i>
                                     <p class="text-gray-400">Video tidak tersedia</p>
+                                </div>
+                            {% endif %}
+                        {% elif lesson.content_type == 'video_url' %}
+                            {% if 'youtube.com' in lesson.content_url or 'youtu.be' in lesson.content_url %}
+                                <div class="w-full h-full">
+                                    {% set video_id = '' %}
+                                    {% if 'v=' in lesson.content_url %}
+                                        {% set video_id = lesson.content_url.split('v=')[1].split('&')[0] %}
+                                    {% elif 'youtu.be/' in lesson.content_url %}
+                                        {% set video_id = lesson.content_url.split('youtu.be/')[1].split('?')[0] %}
+                                    {% elif 'embed/' in lesson.content_url %}
+                                        {% set video_id = lesson.content_url.split('embed/')[1].split('?')[0] %}
+                                    {% endif %}
+                                    <iframe class="w-full h-full" src="https://www.youtube.com/embed/{{ video_id }}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                                </div>
+                            {% else %}
+                                <div class="text-white text-center">
+                                    <i class="fas fa-external-link-alt text-6xl mb-4 opacity-50"></i>
+                                    <p class="text-gray-400">URL video tidak didukung untuk embed</p>
+                                    <a href="{{ lesson.content_url }}" target="_blank" class="text-emerald-400 hover:underline mt-2 inline-block">Buka Video di Tab Baru</a>
                                 </div>
                             {% endif %}
                         {% elif lesson.content_type == 'text' %}

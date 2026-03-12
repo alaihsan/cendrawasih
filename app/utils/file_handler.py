@@ -46,11 +46,13 @@ class FileHandler:
             # Compress video
             compress_result = MediaCompressionService.compress_video(
                 original_path, 
-                compressed_folder, 
-                quality=quality
+                compressed_folder
             )
             
             if not compress_result['success']:
+                # Ensure message key exists even if child service doesn't return it
+                if 'message' not in compress_result:
+                    compress_result['message'] = 'Terjadi kesalahan saat kompresi video.'
                 return compress_result
             
             # Return successful result

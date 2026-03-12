@@ -24,9 +24,19 @@ class MediaCompressionService:
         return ext in allowed, f"File type .{ext} not allowed. Allowed: {allowed}"
     
     @staticmethod
+    def is_ffmpeg_available():
+        """Check if ffmpeg and ffprobe are installed and accessible"""
+        try:
+            subprocess.run(['ffmpeg', '-version'], capture_output=True, check=True)
+            subprocess.run(['ffprobe', '-version'], capture_output=True, check=True)
+            return True
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            return False
+
+    @staticmethod
     def process_video_background(app, lesson_id, input_path, compressed_folder, hls_folder):
         """
-        Background task untuk memproses video (Compression + HLS)
+        Background task untuk memproses video (Compression + HLS + Thumbnail)
         """
         with app.app_context():
             from app.models.lesson import Lesson
@@ -40,7 +50,13 @@ class MediaCompressionService:
                 lesson.compression_status = 'processing'
                 db.session.commit()
                 
-                # 1. Standard Compression (Multiple Qualities)
+                # 1. Generate Thumbnail
+                thumb_result = MediaCompressionService.generate_video_thumbnail(input_path, compressed_folder, lesson_id)
+                if thumb_result['success']:
+                    lesson.compressed_image = thumb_result['thumbnail_path']
+                    db.session.commit()
+                
+                # 2. Standard Compression (Multiple Qualities)
                 compress_result = MediaCompressionService.compress_video(input_path, compressed_folder)
                 
                 if compress_result['success']:
@@ -51,7 +67,7 @@ class MediaCompressionService:
                         'compression_ratio': compress_result['compression_ratio']
                     }
                 
-                # 2. HLS Generation (Adaptive Streaming)
+                # 3. HLS Generation (Adaptive Streaming)
                 hls_result = MediaCompressionService.generate_hls(input_path, hls_folder, lesson_id)
                 if hls_result['success']:
                     lesson.hls_path = hls_result['playlist_path']
@@ -66,8 +82,38 @@ class MediaCompressionService:
                 print(f"Background Video Processing Error: {str(e)}")
 
     @staticmethod
+    def generate_video_thumbnail(input_path, output_folder, lesson_id):
+        """Ambil 1 frame dari video sebagai thumbnail (poster)"""
+        if not MediaCompressionService.is_ffmpeg_available():
+            return {'success': False, 'message': 'FFmpeg not available'}
+            
+        try:
+            os.makedirs(output_folder, exist_ok=True)
+            thumb_name = f"thumb_lesson_{lesson_id}.jpg"
+            output_path = os.path.join(output_folder, thumb_name)
+            
+            cmd = [
+                'ffmpeg', '-i', input_path,
+                '-ss', '00:00:01.000',
+                '-vframes', '1',
+                '-q:v', '2',
+                '-y', output_path
+            ]
+            
+            subprocess.run(cmd, capture_output=True, check=True)
+            return {
+                'success': True, 
+                'thumbnail_path': f"uploads/compressed/{thumb_name}"
+            }
+        except Exception as e:
+            return {'success': False, 'message': str(e)}
+
+    @staticmethod
     def compress_video(input_path, output_folder):
-        """Compress video ke berbagai kualitas (MP4 & WebM)"""
+        """Compress video ke berbagai kualitas (MP4)"""
+        if not MediaCompressionService.is_ffmpeg_available():
+            return {'success': False, 'message': 'FFmpeg tidak ditemukan.'}
+        
         try:
             original_size = os.path.getsize(input_path)
             base_name = os.path.splitext(os.path.basename(input_path))[0]
@@ -96,13 +142,13 @@ class MediaCompressionService:
                 if os.path.exists(output_file):
                     versions[quality_name] = f"uploads/compressed/{os.path.basename(output_file)}"
             
-            total_compressed = sum(os.path.getsize(os.path.join(output_folder, os.path.basename(v))) for v in versions.values())
+            total_compressed = sum(os.path.getsize(os.path.join(output_folder, os.path.basename(v))) for v in versions.values()) if versions else 0
             
             return {
-                'success': True,
+                'success': True if versions else False,
                 'original_size': original_size,
                 'total_compressed_size': total_compressed,
-                'compression_ratio': round((1 - total_compressed/original_size) * 100, 2),
+                'compression_ratio': round((1 - total_compressed/original_size) * 100, 2) if original_size > 0 else 0,
                 'versions': versions
             }
         except Exception as e:
@@ -110,19 +156,17 @@ class MediaCompressionService:
 
     @staticmethod
     def generate_hls(input_path, output_root, lesson_id):
-        """
-        Generate HLS (m3u8) dengan adaptive bitrate
-        """
+        """Generate HLS (m3u8) dengan adaptive bitrate"""
+        if not MediaCompressionService.is_ffmpeg_available():
+            return {'success': False, 'message': 'FFmpeg not available'}
+            
         try:
-            # Create specific folder for this lesson's HLS
             hls_dir = os.path.join(output_root, f"lesson_{lesson_id}")
             os.makedirs(hls_dir, exist_ok=True)
             
             playlist_name = "playlist.m3u8"
             output_path = os.path.join(hls_dir, playlist_name)
             
-            # FFmpeg HLS command (Simple version for demo)
-            # In production, you would create multiple variant playlists
             cmd = [
                 'ffmpeg', '-i', input_path,
                 '-profile:v', 'baseline', '-level', '3.0',
@@ -163,6 +207,8 @@ class MediaCompressionService:
 
     @staticmethod
     def get_video_metadata(video_path):
+        if not MediaCompressionService.is_ffmpeg_available():
+            return {}
         try:
             cmd = ['ffprobe', '-v', 'error', '-show_entries', 'format=duration : stream=width,height', '-of', 'json', video_path]
             result = subprocess.run(cmd, capture_output=True, text=True)
