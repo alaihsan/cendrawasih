@@ -12,7 +12,10 @@ class Config:
     
     # Konfigurasi Upload (untuk materi/video nanti)
     UPLOAD_FOLDER = os.path.join(basedir, 'app/static/uploads')
-    MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # Limit 16MB
+    MEDIA_UPLOAD_FOLDER = os.path.join(UPLOAD_FOLDER, 'media')
+    COMPRESSED_FOLDER = os.path.join(UPLOAD_FOLDER, 'compressed')
+    HLS_FOLDER = os.path.join(UPLOAD_FOLDER, 'hls')
+    MAX_CONTENT_LENGTH = 100 * 1024 * 1024  # Limit 100MB for video
 
 class DevelopmentConfig(Config):
     DEBUG = True

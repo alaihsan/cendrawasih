@@ -262,35 +262,54 @@ def lesson_create(topic_id):
         
         # Jika upload video dari file
         if form.content_type.data == 'video' and form.video_file.data:
-            media_folder = current_app.config.get('MEDIA_UPLOAD_FOLDER') or 'app/static/uploads/media'
-            compressed_folder = current_app.config.get('COMPRESSED_FOLDER') or 'app/static/uploads/compressed'
+            media_folder = current_app.config.get('MEDIA_UPLOAD_FOLDER')
+            compressed_folder = current_app.config.get('COMPRESSED_FOLDER')
+            hls_folder = current_app.config.get('HLS_FOLDER')
             
-            upload_result = FileHandler.save_video_file(form.video_file.data, media_folder, compressed_folder)
+            # 1. Save original file immediately
+            filename = FileHandler.generate_unique_filename(secure_filename(form.video_file.data.filename))
+            os.makedirs(media_folder, exist_ok=True)
+            original_path = os.path.join(media_folder, filename)
+            form.video_file.data.save(original_path)
             
-            if upload_result['success']:
-                content_url = upload_result['original_path']
-                compression_status = 'completed'
-                compression_metadata = {
-                    'original_size': upload_result['original_size'],
-                    'total_compressed_size': upload_result.get('total_compressed_size'),
-                    'compression_ratio': upload_result.get('compression_ratio')
-                }
-                compressed_video_versions = upload_result.get('versions', {})
-                flash(f"Video berhasil diupload! Kompresi: {upload_result.get('compression_ratio', 0):.1f}%", 'success')
-            else:
-                flash(f"Error upload video: {upload_result['message']}", 'danger')
-                return render_template('admin/lessons/create.html', form=form, topic=topic, course=course)
-        
-        # Create lesson
-        lesson, message = CourseService.create_lesson(
-            topic_id,
-            title=form.title.data,
-            content_type=form.content_type.data,
-            content_url=content_url,
-            text_content=form.text_content.data,
-            order=form.order.data
-        )
-        
+            content_url = original_path
+            compression_status = 'pending'
+            
+            # Create lesson first to get ID
+            lesson, message = CourseService.create_lesson(
+                topic_id,
+                title=form.title.data,
+                content_type=form.content_type.data,
+                content_url=content_url,
+                text_content=form.text_content.data,
+                order=form.order.data
+            )
+            
+            if lesson:
+                # 2. Trigger background processing
+                import threading
+                from app.services.media_compression_service import MediaCompressionService
+                
+                app = current_app._get_current_object()
+                thread = threading.Thread(
+                    target=MediaCompressionService.process_video_background,
+                    args=(app, lesson.id, original_path, compressed_folder, hls_folder)
+                )
+                thread.start()
+                
+                flash('Pelajaran dibuat! Video sedang diproses di background.', 'info')
+                return redirect(url_for('admin.course_detail', course_id=course.id))
+        else:
+            # Create lesson for non-video or URL-based video
+            lesson, message = CourseService.create_lesson(
+                topic_id,
+                title=form.title.data,
+                content_type=form.content_type.data,
+                content_url=content_url,
+                text_content=form.text_content.data,
+                order=form.order.data
+            )
+            
         if lesson:
             # Save compression metadata
             lesson.compression_status = compression_status

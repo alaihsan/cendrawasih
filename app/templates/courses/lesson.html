@@ -255,98 +255,58 @@
 </style>
 
 {% block extra_js %}
+<!-- HLS.js for Adaptive Bitrate Streaming -->
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const videoElement = document.getElementById('lessonVideo');
-    const videoContainer = document.getElementById('videoContainer');
-    const qualityButtons = document.querySelectorAll('.quality-selector');
+    const hlsPath = "{{ lesson.hls_path }}";
     
-    if (!videoElement || qualityButtons.length === 0) {
-        return; // No video or quality buttons
-    }
-    
-    // Initialize Plyr player
+    // Initialize Plyr first
     const player = new Plyr(videoElement, {
-        controls: [
-            'play-large',
-            'play',
-            'progress',
-            'current-time',
-            'mute',
-            'volume',
-            'captions',
-            'settings',
-            'pip',
-            'airplay',
-            'fullscreen'
-        ],
-        settings: ['captions', 'quality', 'speed', 'loop'],
-        quality: {
-            default: 720,
-            options: [480, 720, 1080]
-        }
+        controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'captions', 'settings', 'pip', 'airplay', 'fullscreen'],
+        quality: { default: 720, options: [480, 720, 1080] }
     });
-    
-    // Get stored quality preference from localStorage
-    const lessonId = `{{ lesson.id }}`;
-    const storageKey = `video_quality_${lessonId}`;
-    const savedQuality = localStorage.getItem(storageKey);
-    
-    // Set default or saved quality
-    let defaultButton = null;
-    let savedButton = null;
-    
+
+    if (hlsPath && hlsPath !== 'None') {
+        // Use HLS.js if path exists and browser supports it
+        if (Hls.isSupported()) {
+            const hls = new Hls();
+            hls.loadSource('/static/' + hlsPath);
+            hls.attachMedia(videoElement);
+            window.hls = hls;
+            console.log("HLS.js loaded for adaptive streaming");
+        } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
+            // Native HLS support (Safari)
+            videoElement.src = '/static/' + hlsPath;
+            console.log("Native HLS used");
+        }
+    }
+
+    // Quality selector logic for MP4 fallback
+    const qualityButtons = document.querySelectorAll('.quality-selector');
     qualityButtons.forEach(button => {
-        if (button.dataset.default === 'true') {
-            defaultButton = button;
-        }
-        if (button.textContent.trim() === (savedQuality || '')) {
-            savedButton = button;
-        }
-        
         button.addEventListener('click', function() {
-            changeQuality(this);
+            const src = this.dataset.src;
+            const currentTime = videoElement.currentTime;
+            
+            // If HLS was active, destroy it before switching to MP4
+            if (window.hls) {
+                window.hls.destroy();
+                window.hls = null;
+            }
+            
+            videoElement.src = '/' + src;
+            videoElement.load();
+            videoElement.currentTime = currentTime;
+            videoElement.play();
+            
+            // UI Update
+            qualityButtons.forEach(btn => btn.classList.replace('bg-emerald-600', 'bg-gray-800'));
+            this.classList.replace('bg-gray-800', 'bg-emerald-600');
         });
     });
-    
-    // Apply saved quality or default
-    const initialButton = savedButton || defaultButton;
-    if (initialButton) {
-        changeQuality(initialButton);
-    }
-    
-    function changeQuality(button) {
-        const src = button.dataset.src;
-        const type = button.dataset.type;
-        const quality = button.textContent.trim();
-        
-        // Update all button styles
-        qualityButtons.forEach(btn => {
-            btn.classList.remove('bg-emerald-600');
-            btn.classList.add('bg-gray-800');
-        });
-        
-        // Highlight selected button
-        button.classList.remove('bg-gray-800');
-        button.classList.add('bg-emerald-600');
-        
-        // Get current playback time
-        const currentTime = videoElement.currentTime;
-        
-        // Update video source
-        videoElement.querySelector('source').src = src;
-        videoElement.querySelector('source').type = type;
-        
-        // Reload and restart playback
-        videoElement.load();
-        videoElement.currentTime = currentTime;
-        videoElement.play().catch(err => {
-            console.log('Playback failed:', err);
-        });
-        
-        // Save preference to localStorage
-        localStorage.setItem(storageKey, quality);
-    }
 });
 </script>
 {% endblock %}

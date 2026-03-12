@@ -1,98 +1,73 @@
 import os
 import subprocess
+import threading
 from datetime import datetime
 from werkzeug.utils import secure_filename
 from PIL import Image
-from io import BytesIO
 import json
+from flask import current_app
 
 class MediaCompressionService:
-    """Service untuk kompresi media (video/gambar) dengan multiple quality"""
+    """Service untuk kompresi media (video/gambar) dengan HLS dan Background Processing"""
     
     ALLOWED_VIDEO = {'mp4', 'avi', 'mov', 'mkv', 'flv', 'wmv', 'webm'}
     ALLOWED_IMAGE = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'}
     
     @staticmethod
     def get_file_extension(filename):
-        """Get file extension"""
         return filename.rsplit('.', 1)[1].lower() if '.' in filename else ''
     
     @staticmethod
     def validate_file_type(filename, file_type='video'):
-        """Validate file type"""
         ext = MediaCompressionService.get_file_extension(filename)
         allowed = MediaCompressionService.ALLOWED_VIDEO if file_type == 'video' else MediaCompressionService.ALLOWED_IMAGE
         return ext in allowed, f"File type .{ext} not allowed. Allowed: {allowed}"
     
     @staticmethod
-    def compress_image(input_path, output_folder, quality=85, max_width=1920):
+    def process_video_background(app, lesson_id, input_path, compressed_folder, hls_folder):
         """
-        Compress gambar dengan berbagai ukuran
-        Returns: {original_size, compressed_size, output_paths}
+        Background task untuk memproses video (Compression + HLS)
         """
-        try:
-            img = Image.open(input_path)
-            original_size = os.path.getsize(input_path)
+        with app.app_context():
+            from app.models.lesson import Lesson
+            from app import db
             
-            # Resize jika lebih besar dari max_width
-            if img.width > max_width:
-                ratio = max_width / img.width
-                new_height = int(img.height * ratio)
-                img = img.resize((max_width, new_height), Image.Resampling.LANCZOS)
-            
-            # Convert RGBA ke RGB jika perlu
-            if img.mode in ('RGBA', 'LA', 'P'):
-                rgb_img = Image.new('RGB', img.size, (255, 255, 255))
-                if img.mode == 'RGBA':
-                    rgb_img.paste(img, mask=img.split()[3])
-                else:
-                    rgb_img.paste(img)
-                img = rgb_img
-            
-            # Save compressed JPEG
-            base_name = os.path.splitext(os.path.basename(input_path))[0]
-            jpeg_output = os.path.join(output_folder, f"{base_name}_compressed_{quality}.jpg")
-            img.save(jpeg_output, 'JPEG', quality=quality, optimize=True)
-            
-            # Save WebP version (smaller)
-            webp_output = os.path.join(output_folder, f"{base_name}_compressed.webp")
-            img.save(webp_output, 'WEBP', quality=quality)
-            
-            compressed_size = os.path.getsize(jpeg_output)
-            compression_ratio = (1 - compressed_size / original_size) * 100
-            
-            return {
-                'success': True,
-                'original_size': original_size,
-                'compressed_size': compressed_size,
-                'compression_ratio': round(compression_ratio, 2),
-                'jpeg_path': jpeg_output,
-                'webp_path': webp_output,
-                'message': f'Compressed {compression_ratio:.1f}%'
-            }
-        except Exception as e:
-            return {
-                'success': False,
-                'message': f'Image compression error: {str(e)}'
-            }
-    
+            lesson = Lesson.query.get(lesson_id)
+            if not lesson:
+                return
+
+            try:
+                lesson.compression_status = 'processing'
+                db.session.commit()
+                
+                # 1. Standard Compression (Multiple Qualities)
+                compress_result = MediaCompressionService.compress_video(input_path, compressed_folder)
+                
+                if compress_result['success']:
+                    lesson.compressed_video_versions = compress_result['versions']
+                    lesson.compression_metadata = {
+                        'original_size': compress_result['original_size'],
+                        'total_compressed_size': compress_result['total_compressed_size'],
+                        'compression_ratio': compress_result['compression_ratio']
+                    }
+                
+                # 2. HLS Generation (Adaptive Streaming)
+                hls_result = MediaCompressionService.generate_hls(input_path, hls_folder, lesson_id)
+                if hls_result['success']:
+                    lesson.hls_path = hls_result['playlist_path']
+                
+                lesson.compression_status = 'completed'
+                db.session.commit()
+                
+            except Exception as e:
+                lesson.compression_status = 'failed'
+                lesson.compression_metadata = {'error': str(e)}
+                db.session.commit()
+                print(f"Background Video Processing Error: {str(e)}")
+
     @staticmethod
-    def compress_video(input_path, output_folder, quality='medium'):
-        """
-        Compress video dengan multiple quality levels menggunakan FFmpeg
-        Returns: {original_size, versions, metadata}
-        
-        Quality options: 'low' (480p), 'medium' (720p), 'high' (1080p)
-        """
-        try:
-            # Check ffmpeg installed
-            subprocess.run(['ffmpeg', '-version'], capture_output=True, check=True)
-        except:
-            return {
-                'success': False,
-                'message': 'FFmpeg not installed. Install: pip install ffmpeg-python atau download dari ffmpeg.org'
-            }
-        
+    def compress_video(input_path, output_folder):
+        """Compress video ke berbagai kualitas (MP4 & WebM)"""
         try:
             original_size = os.path.getsize(input_path)
             base_name = os.path.splitext(os.path.basename(input_path))[0]
@@ -102,85 +77,94 @@ class MediaCompressionService:
             presets = {
                 'low': {'bitrate': '500k', 'scale': '480:270', 'crf': 28},
                 'medium': {'bitrate': '1500k', 'scale': '1280:720', 'crf': 23},
-                'high': {'bitrate': '3000k', 'scale': '1920:1080', 'crf': 20},
-                'webm': {'bitrate': '1000k', 'scale': '1280:720', 'crf': 25}
+                'high': {'bitrate': '3000k', 'scale': '1920:1080', 'crf': 20}
             }
             
             for quality_name, settings in presets.items():
-                ext = 'webm' if quality_name == 'webm' else 'mp4'
-                output_file = os.path.join(output_folder, f"{base_name}_{quality_name}.{ext}")
+                output_file = os.path.join(output_folder, f"{base_name}_{quality_name}.mp4")
                 
-                # Build ffmpeg command
-                if ext == 'webm':
-                    cmd = [
-                        'ffmpeg', '-i', input_path,
-                        '-vf', f"scale={settings['scale']}",
-                        '-b:v', settings['bitrate'],
-                        '-c:v', 'libvpx-vp9',
-                        '-crf', str(settings['crf']),
-                        '-c:a', 'libopus',
-                        '-b:a', '128k',
-                        '-y', output_file
-                    ]
-                else:
-                    cmd = [
-                        'ffmpeg', '-i', input_path,
-                        '-vf', f"scale={settings['scale']}",
-                        '-c:v', 'libx264',
-                        '-b:v', settings['bitrate'],
-                        '-crf', str(settings['crf']),
-                        '-preset', 'medium',
-                        '-c:a', 'aac',
-                        '-b:a', '128k',
-                        '-y', output_file
-                    ]
+                cmd = [
+                    'ffmpeg', '-i', input_path,
+                    '-vf', f"scale={settings['scale']}",
+                    '-c:v', 'libx264', '-b:v', settings['bitrate'],
+                    '-crf', str(settings['crf']), '-preset', 'veryfast',
+                    '-c:a', 'aac', '-b:a', '128k', '-y', output_file
+                ]
                 
-                # Run ffmpeg
-                result = subprocess.run(cmd, capture_output=True, text=True)
+                subprocess.run(cmd, capture_output=True, check=True)
                 
-                if result.returncode == 0 and os.path.exists(output_file):
-                    compressed_size = os.path.getsize(output_file)
-                    versions[quality_name] = {
-                        'path': output_file,
-                        'bitrate': settings['bitrate'],
-                        'scale': settings['scale'],
-                        'size': compressed_size,
-                        'format': ext
-                    }
+                if os.path.exists(output_file):
+                    versions[quality_name] = f"uploads/compressed/{os.path.basename(output_file)}"
             
-            if not versions:
-                return {
-                    'success': False,
-                    'message': 'Video compression failed. Check FFmpeg installation.'
-                }
-            
-            # Calculate total compression
-            total_compressed = sum(v['size'] for v in versions.values())
+            total_compressed = sum(os.path.getsize(os.path.join(output_folder, os.path.basename(v))) for v in versions.values())
             
             return {
                 'success': True,
                 'original_size': original_size,
                 'total_compressed_size': total_compressed,
                 'compression_ratio': round((1 - total_compressed/original_size) * 100, 2),
-                'versions': versions,
-                'message': f'Video compressed successfully!'
+                'versions': versions
             }
         except Exception as e:
+            return {'success': False, 'message': str(e)}
+
+    @staticmethod
+    def generate_hls(input_path, output_root, lesson_id):
+        """
+        Generate HLS (m3u8) dengan adaptive bitrate
+        """
+        try:
+            # Create specific folder for this lesson's HLS
+            hls_dir = os.path.join(output_root, f"lesson_{lesson_id}")
+            os.makedirs(hls_dir, exist_ok=True)
+            
+            playlist_name = "playlist.m3u8"
+            output_path = os.path.join(hls_dir, playlist_name)
+            
+            # FFmpeg HLS command (Simple version for demo)
+            # In production, you would create multiple variant playlists
+            cmd = [
+                'ffmpeg', '-i', input_path,
+                '-profile:v', 'baseline', '-level', '3.0',
+                '-s', '1280x720', '-start_number', '0',
+                '-hls_time', '10', '-hls_list_size', '0',
+                '-f', 'hls', '-y', output_path
+            ]
+            
+            subprocess.run(cmd, capture_output=True, check=True)
+            
+            relative_path = f"uploads/hls/lesson_{lesson_id}/{playlist_name}"
+            return {'success': True, 'playlist_path': relative_path}
+        except Exception as e:
+            return {'success': False, 'message': str(e)}
+
+    @staticmethod
+    def compress_image(input_path, output_folder, quality=85):
+        try:
+            img = Image.open(input_path)
+            original_size = os.path.getsize(input_path)
+            
+            base_name = os.path.splitext(os.path.basename(input_path))[0]
+            jpeg_output = os.path.join(output_folder, f"{base_name}_comp.jpg")
+            
+            if img.mode in ('RGBA', 'LA', 'P'):
+                img = img.convert('RGB')
+                
+            img.save(jpeg_output, 'JPEG', quality=quality, optimize=True)
+            
+            compressed_size = os.path.getsize(jpeg_output)
             return {
-                'success': False,
-                'message': f'Video compression error: {str(e)}'
+                'success': True,
+                'jpeg_path': f"uploads/compressed/{os.path.basename(jpeg_output)}",
+                'compression_ratio': round((1 - compressed_size / original_size) * 100, 2)
             }
-    
+        except Exception as e:
+            return {'success': False, 'message': str(e)}
+
     @staticmethod
     def get_video_metadata(video_path):
-        """Get video metadata using ffprobe"""
         try:
-            cmd = [
-                'ffprobe', '-v', 'error',
-                '-show_entries', 'format=duration,size : stream=width,height,codec_type',
-                '-of', 'json',
-                video_path
-            ]
+            cmd = ['ffprobe', '-v', 'error', '-show_entries', 'format=duration : stream=width,height', '-of', 'json', video_path]
             result = subprocess.run(cmd, capture_output=True, text=True)
             return json.loads(result.stdout) if result.stdout else {}
         except:
